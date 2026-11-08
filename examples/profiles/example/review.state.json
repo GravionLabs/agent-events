@@ -1,0 +1,34 @@
+{
+  "v": 1,
+  "status": "finished",
+  "run": "review-1",
+  "subject": {
+    "kind": "github.pull-request",
+    "id": "GravionLabs/demo#7",
+    "title": "Add reducer",
+    "url": "https://github.com/GravionLabs/demo/pull/7"
+  },
+  "outcome": "succeeded",
+  "tasks": [],
+  "finished": {
+    "succeeded": [
+      {
+        "task": "t1",
+        "subject": {
+          "kind": "github.pull-request",
+          "id": "GravionLabs/demo#7",
+          "title": "Add reducer"
+        }
+      }
+    ],
+    "failed": [],
+    "cancelled": [],
+    "skipped": []
+  },
+  "attentions": [],
+  "needsYou": false,
+  "links": [],
+  "gaps": [],
+  "lastSeq": 9,
+  "updated": "2026-11-08T10:00:08.000Z"
+}

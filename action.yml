@@ -1,0 +1,34 @@
+name: agent-events validate
+description: Validate agent-events run files (JSON Lines) against the core schema, profile schemas and the file rules.
+branding:
+  icon: check-circle
+  color: blue
+inputs:
+  files:
+    description: File or glob of run files to validate (for example `.git/.agents/events/*.jsonl`).
+    required: true
+  profiles:
+    description: Profile schemas by path or URL, one per line.
+    required: false
+    default: ""
+  version:
+    description: Version of the agent-events npm package to run.
+    required: false
+    default: latest
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: "26"
+    - shell: bash
+      env:
+        FILES: ${{ inputs.files }}
+        PROFILES: ${{ inputs.profiles }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        args=()
+        while IFS= read -r p; do
+          [ -n "$p" ] && args+=(--profile "$p")
+        done <<< "$PROFILES"
+        npx --yes "agent-events@${VERSION}" validate "$FILES" "${args[@]}"

@@ -1,7 +1,40 @@
 {
   "name": "agent-events",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Validate agent-events run files (JSON Lines) against the core and profile schemas",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GravionLabs/agent-events.git"
+  },
   "type": "module",
-  "scripts": { "test": "node test/validate.mjs" },
-  "devDependencies": { "ajv": "8.17.1", "ajv-formats": "3.0.1" }
+  "bin": {
+    "agent-events": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "schema"
+  ],
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts test/install.ts test/release-workflow.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format:check": "biome format .",
+    "changelog": "git-cliff -c cliff.toml -o CHANGELOG.md --tag v$npm_package_version"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^26.0.0",
+    "git-cliff": "^2.14.2",
+    "typescript": "^5.9.0"
+  }
 }
