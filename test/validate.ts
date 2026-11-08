@@ -1,55 +1,13 @@
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import AjvModule from 'ajv/dist/2020.js'
-import formatsModule from 'ajv-formats'
+import { checkRun } from '../src/check.ts'
 
-// Both packages are CommonJS; under nodenext their default import is typed as the module object.
-const Ajv2020 = AjvModule as unknown as typeof AjvModule.default
-const addFormats = formatsModule as unknown as typeof formatsModule.default
-
-export const MAX_LINE_BYTES = 16384
-
-const load = (p: string): object =>
-  JSON.parse(readFileSync(new URL(`../${p}`, import.meta.url), 'utf8'))
-const ajv = new Ajv2020({ strict: false, allErrors: true })
-addFormats(ajv)
-const event = ajv.compile(load('schema/v0/core.schema.json'))
-
-// Returns the list of problems of one run file; empty when valid.
+// Returns the error messages of one run file, from the single validator in src/check.ts; empty when valid.
 export function checkRunFile(text: string): string[] {
-  const problems: string[] = []
-  const lines = text.split('\n')
-  const incompleteLast = !text.endsWith('\n') && lines.length > 0
-  if (!incompleteLast) lines.pop() // trailing empty string after the last newline
-  let expectedSeq = 1
-  let run: unknown
-  lines.forEach((line, i) => {
-    const n = i + 1
-    const last = incompleteLast && i === lines.length - 1
-    if (Buffer.byteLength(line) > MAX_LINE_BYTES) {
-      problems.push(`${n}: line longer than ${MAX_LINE_BYTES} bytes`)
-      return
-    }
-    let obj: { seq: number; run: unknown }
-    try {
-      obj = JSON.parse(line)
-    } catch {
-      if (!last) problems.push(`${n}: not JSON`)
-      return // an incomplete last line is skipped
-    }
-    if (!event(obj)) {
-      problems.push(
-        `${n}: schema ${JSON.stringify((event.errors ?? []).map((e) => `${e.instancePath} ${e.message}`))}`,
-      )
-      return
-    }
-    if (obj.seq !== expectedSeq) problems.push(`${n}: seq ${obj.seq}, expected ${expectedSeq}`)
-    expectedSeq = obj.seq + 1
-    run ??= obj.run
-    if (obj.run !== run) problems.push(`${n}: run changed from ${run} to ${obj.run}`)
-  })
-  return problems
+  return checkRun(text)
+    .filter((f) => f.level === 'error')
+    .map((f) => `${f.line}: ${f.message}`)
 }
 
 for (const kind of ['valid', 'invalid'] as const) {
@@ -66,3 +24,17 @@ for (const kind of ['valid', 'invalid'] as const) {
     }
   })
 }
+
+describe('run.started position', () => {
+  const ev = (seq: number, type: string) =>
+    `{"v":1,"seq":${seq},"ts":"2026-11-08T10:00:0${seq}.000Z","run":"r1","type":"${type}","tone":"neutral"${type === 'run.started' ? ',"profiles":[],"host":{}' : type === 'run.finished' ? ',"outcome":"succeeded"' : ''}}\n`
+  it('accepts run.started first and once', () =>
+    assert.deepEqual(checkRunFile(ev(1, 'run.started')), []))
+  it('rejects a first event that is not run.started', () =>
+    assert.match(checkRunFile(ev(1, 'run.finished')).join(), /1: .*expected run\.started/))
+  it('rejects a second run.started', () =>
+    assert.match(
+      checkRunFile(ev(1, 'run.started') + ev(2, 'run.started')).join(),
+      /2: run\.started is not the first event/,
+    ))
+})

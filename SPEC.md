@@ -32,6 +32,8 @@ Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event 
 | `attention` | `id`, optional `task`, `reason`, `needsYou`, optional `links` |
 | `attention.resolved` | `id` |
 
+`run.started` MUST be the first event of a run and MUST occur once; a run file that starts with another event, or repeats `run.started`, is invalid.
+
 `step.started` and `step.finished` are both optional for the writer.
 
 ## Subject and links
