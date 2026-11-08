@@ -49,6 +49,19 @@ Every event carries `v`, `seq` (per run, from 1, gapless), `ts` (RFC 3339), `run
 
 The core defines the fold of a run, with a schema and reader fixtures: status (`running`, `finished`, `abandoned`), outcome, open tasks with their last step, finished tasks per outcome, progress, open attentions, `needsYou`. Profiles extend it. Every reader, in any language, checks its fold against the same fixtures.
 
+### Displays are core readers
+
+A display MUST be able to show a run from the core alone; a profile is never required to display one. Profiles serve the writer's own tools and optional details. Displays depend on agent-events only, never on the repository of a profile.
+
+| Shown | From the core |
+| :-- | :-- |
+| what is worked on | `subject.id`, `subject.title` of the open tasks |
+| current step | `step.name`, `step.text` |
+| pull request, log, release candidate | `links[]` (`rel`) |
+| progress | `progress.done` / `progress.total` |
+| colour, "needs you" | `tone`, `needsYou`, open `attention` |
+| result per task and run | `outcome`, `reason` |
+
 ### Profiles
 
 A profile adds types, fields, tone rules and state for one domain. Its types and fields carry its name as a prefix: types `<profile>.<name>` (`deliver.release.updated`), fields under an object of the same name (`"deliver": {…}`). Readers ignore profiles they do not know. A run declares its profiles in `run.started` (`profiles: ["deliver@1"]`).
@@ -79,13 +92,15 @@ The core is the format. Transport and location are bindings:
 - Easier:
   - A display that knows only the core shows any run: status, open tasks, step, progress, tone, "needs you", links.
   - A new workflow writes core events plus its own profile, without a change in agent-events.
-  - skills, poimen and herdr-plugins change their own parts in their own repositories.
+  - skills, poimen and herdr-plugins change their own parts in their own repositories; poimen and herdr-plugins depend on agent-events only.
   - Readers in pwsh, Rust and TypeScript check their fold against the same core fixtures.
 - Harder:
   - The current content (deliver schema, deliver run state, deliver fixtures) is replaced by the core; the deliver part moves back to skills as the deliver profile.
   - deliver maps its vocabulary onto the core: `issue` → `task` plus `subject`, `prUrl` → `links`, `issue.finished` outcomes → `outcome` plus `deliver.outcome`, `milestone.progress` → `progress`.
   - Two schemas per run (core plus profile) and two fixture sets (core in agent-events, profile in skills).
-  - GravionLabs/skills#452, GravionLabs/herdr-plugins#222 and GravionLabs/poimen#544 pin `v0.1.0` instead of `v1.0.0` and test against core plus deliver profile.
+  - GravionLabs/skills#452 pins `v0.1.0` and writes core plus deliver profile; GravionLabs/herdr-plugins#222 and GravionLabs/poimen#544 pin `v0.1.0` and read the core only.
+  - The poimen Deliver panel becomes a panel for any run; the herdr tokens are derived from the core, so the token fixtures belong to herdr-plugins.
+  - Deliver details that the core does not carry (release review round, milestone key) are not shown by generic displays unless they are expressed as links, attention or progress.
 - Follow-ups: core schema and state schema with fixtures, `jsonl-file` binding spec, profile guide with example profile, validator CLI and Action, Pages publishing, then `v0.1.0`.
 
 ## Alternatives
@@ -98,5 +113,6 @@ The core is the format. Transport and location are bindings:
 - **No state in the core.** Less spec, but the drift between three folds that skills ADR 0002 counters with fixtures.
 - **One active task per run.** A simpler fold, but parallel subagents and grouping cannot be shown.
 - **Profiles as a registry in agent-events.** One place for everything, but domain changes would again run through the spec repository.
+- **Displays read profiles too.** Richer displays, but poimen and herdr-plugins would depend on skills again for the deliver profile.
 - **Transport and location in the core.** Simpler to read, but cloud and stream cases do not fit.
 - **1.0.0 right after the rebuild.** A clear promise, but every correction from first use would be a major.
