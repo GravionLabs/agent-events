@@ -6,7 +6,7 @@
     "node": ">=26"
   },
   "scripts": {
-    "test": "node --test test/validate.ts test/state.ts test/binding.ts",
+    "test": "node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format ."

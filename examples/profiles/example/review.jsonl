@@ -1,0 +1,9 @@
+{"v":1,"seq":1,"ts":"2026-11-08T10:00:00.000Z","run":"review-1","type":"run.started","tone":"neutral","profiles":["example@1"],"host":{"example.session":"s1"},"subject":{"kind":"github.pull-request","id":"GravionLabs/demo#7","title":"Add reducer","url":"https://github.com/GravionLabs/demo/pull/7"}}
+{"v":1,"seq":2,"ts":"2026-11-08T10:00:01.000Z","run":"review-1","type":"task.started","tone":"info","task":"t1","subject":{"kind":"github.pull-request","id":"GravionLabs/demo#7","title":"Add reducer"}}
+{"v":1,"seq":3,"ts":"2026-11-08T10:00:02.000Z","run":"review-1","type":"example.review.requested","tone":"info","task":"t1","example":{"reviewer":"alice","round":1}}
+{"v":1,"seq":4,"ts":"2026-11-08T10:00:03.000Z","run":"review-1","type":"example.review.completed","tone":"warning","task":"t1","example":{"verdict":"changes-requested","round":1}}
+{"v":1,"seq":5,"ts":"2026-11-08T10:00:04.000Z","run":"review-1","type":"attention","tone":"warning","needsYou":true,"id":"a1","task":"t1","reason":"example.changes-requested"}
+{"v":1,"seq":6,"ts":"2026-11-08T10:00:05.000Z","run":"review-1","type":"attention.resolved","tone":"info","id":"a1"}
+{"v":1,"seq":7,"ts":"2026-11-08T10:00:06.000Z","run":"review-1","type":"example.review.completed","tone":"success","task":"t1","example":{"verdict":"approved","round":2}}
+{"v":1,"seq":8,"ts":"2026-11-08T10:00:07.000Z","run":"review-1","type":"task.finished","tone":"success","task":"t1","outcome":"succeeded"}
+{"v":1,"seq":9,"ts":"2026-11-08T10:00:08.000Z","run":"review-1","type":"run.finished","tone":"success","outcome":"succeeded"}
