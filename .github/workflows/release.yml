@@ -14,11 +14,12 @@ jobs:
           node-version: "26"
       - run: npm ci
       - run: npm test
-      - name: Create GitHub release with the schemas as assets
+      - name: Create GitHub release with the schemas and the npm tarball as assets
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
           node src/release-notes.ts "$TAG" > "$RUNNER_TEMP/notes.md"
-          gh release create "$TAG" schema/v0/*.json \
+          npm pack --pack-destination "$RUNNER_TEMP"
+          gh release create "$TAG" schema/v0/*.json "$RUNNER_TEMP"/agent-events-*.tgz \
             --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag

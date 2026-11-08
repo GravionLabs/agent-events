@@ -20,8 +20,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "npm run build",
-    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts",
+    "prepare": "npm run build",
+    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts test/install.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format ."
