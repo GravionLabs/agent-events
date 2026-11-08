@@ -46,6 +46,34 @@ Tasks run in parallel and are flat; `parent` only groups them. A reader lists th
 
 An `attention` is open until `attention.resolved` with its `id`, `task.finished` of its `task`, or `run.finished`. `needsYou` on it says a human must act.
 
+## Run state
+
+Schema: [`schema/v0/run-state.schema.json`](schema/v0/run-state.schema.json). The state is the fold of the events in order, computed by the reader. Fixtures `fixtures/state/<case>.jsonl` with the expected `<case>.state.json` are the contract; every reader, in any language, MUST produce the same state. `test/fold.ts` is the reference fold. Profiles extend the state under an object of their name.
+
+| State field | From |
+| :-- | :-- |
+| `status` | `running`; `finished` after `run.finished`; `abandoned` (below) |
+| `outcome`, `reason` | `run.finished` |
+| `subject` | `subject` of `run.started` |
+| `progress` | latest `progress` without `task`: progress of the run subject |
+| `tasks` | open tasks in start order: `task`, `parent`, `subject`, last `step`, latest `progress` of the task, `links` |
+| `finished` | finished tasks per `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`) in finish order, with `reason` |
+| `attentions` | open attentions in raise order |
+| `needsYou` | true when an open attention has `needsYou` true |
+| `links` | `links` of `step.finished` and `attention`, first occurrence of `rel` and `url` |
+| `gaps`, `lastSeq`, `updated` | `seq` ranges missing, last `seq`, `ts` of the last folded event |
+
+Folding rules:
+
+- Tasks are parallel and flat. `task.started` opens a task, `task.finished` moves it to `finished`; `parent` only groups and never closes or opens anything. A repeated `task.started` for a known id, and any event for an unknown or finished task, are ignored.
+- The last step of a task is the `step` of its latest `step.started` or `step.finished`.
+- `progress` with a `task` belongs to that open task; without `task` it is the progress of the run subject, latest wins.
+- An attention is resolved by `attention.resolved` with its `id`, by `task.finished` of its `task`, or by `run.finished` (all). A repeated `attention` for an open id and an unknown `attention.resolved` are ignored.
+- Events with `seq` not above the last folded one are ignored. A jump in `seq` is not an error for a reader: the missing range is added to `gaps` and the later events are folded anyway.
+- Lines that are not JSON, including an incomplete last line, are skipped. Unknown types (profile types too) and unknown fields are ignored, but their `seq` counts.
+- Nothing folds after `run.finished`.
+- `abandoned` is decided by the reader: no `run.finished` and the last event older than one hour at the reader's clock (the `jsonl-file` binding adds a writer `pid` that is gone). Fixtures fix the clock in `<case>.now`, default `2026-11-08T10:30:00.000Z`.
+
 ## Host
 
 `host` of `run.started` is an open map of namespaced keys to strings (`"herdr.pane": "w1:p2"`, `"poimen.terminal": "t3"`). A key is `<namespace>.<name>`. The core names no display; each display reads its own key.
@@ -76,7 +104,7 @@ A display MUST be able to show a run from the core alone; a profile is never req
 
 - Fields and types are only added within a major. Readers ignore unknown fields, types and profiles (they stay valid); prefixed profile fields too.
 - A change in meaning bumps `v`.
-- Every new type or rule comes with a fixture in `fixtures/events/`.
+- Every new type or rule comes with a fixture in `fixtures/events/`, every fold rule with one in `fixtures/state/`.
 - Fixtures: `valid/*.jsonl` MUST be accepted, `invalid/*.jsonl` MUST be rejected, one case per rule. `npm test` checks both.
 
 ## Security
