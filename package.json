@@ -16,12 +16,12 @@
     "schema"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build",
-    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts",
+    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/node-version.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format ."
