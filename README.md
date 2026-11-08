@@ -23,8 +23,8 @@ Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-cor
 ## Validate a run file
 
 ```sh
-npx agent-events validate .agents/events/r1.jsonl                  # one file
-npx agent-events validate '.agents/events/*.jsonl'                 # a glob (quote it)
+npx agent-events validate .git/.agents/events/r1.jsonl              # one file
+npx agent-events validate '.git/.agents/events/*.jsonl'            # a glob (quote it)
 cat r1.jsonl | npx agent-events validate -                         # stdin
 npx agent-events validate r1.jsonl --profile examples/profiles/example/example.schema.json
 npx agent-events validate r1.jsonl --profile https://example.org/profiles/deliver/v1/deliver.schema.json
