@@ -1,7 +1,7 @@
 name: release
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
 permissions:
   contents: write
 jobs:
@@ -9,17 +9,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "26"
       - run: npm ci
       - run: npm test
-      - name: Create GitHub release with the schemas and the npm tarball as assets
+      - name: Version and notes (package.json must match the CHANGELOG)
+        id: version
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
         run: |
+          TAG=$(node src/release-notes.ts --check)
           node src/release-notes.ts "$TAG" > "$RUNNER_TEMP/notes.md"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create the tag and the GitHub release with the schemas and the npm tarball as assets
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
           npm pack --pack-destination "$RUNNER_TEMP"
           gh release create "$TAG" schema/v0/*.json "$RUNNER_TEMP"/agent-events-*.tgz \
-            --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag
+            --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --target "$GITHUB_SHA"
