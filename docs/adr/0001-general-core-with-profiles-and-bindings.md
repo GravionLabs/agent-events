@@ -28,7 +28,7 @@ Every event carries `v`, `seq` (per run, from 1, gapless), `ts` (RFC 3339), `run
 
 | Type | Carries |
 | :-- | :-- |
-| `run.started` | `profiles` (`["<name>@<major>"]`), `host`, optional `agent` (harness, model) |
+| `run.started` | `profiles` (`["<name>@<major>"]`), `host`, optional `agent` (harness, model), optional `subject` (what the run as a whole works on) |
 | `run.finished` | `outcome` (`succeeded`, `failed`, `cancelled`), optional `reason` |
 | `task.started` | `task` (id, unique in the run), optional `parent` (task id), `subject` |
 | `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` |
@@ -39,6 +39,8 @@ Every event carries `v`, `seq` (per run, from 1, gapless), `ts` (RFC 3339), `run
 | `attention.resolved` | `id` |
 
 - **Subject and links.** `subject` is `{kind, id, title, url}` (`kind` free, for example `github.issue`). `links` is a list of `{rel, url, title}` (`rel` free, for example `pull-request`, `log`). A generic display shows title and links without knowing the domain.
+- **Run subject.** `run.started` may carry a `subject` for the run as a whole (a milestone, a release, a ticket), with the tasks as its work items. `progress` without `task` is the progress of the run subject.
+- **Known subject kinds.** `docs/subject-kinds.md` lists conventional `kind` values with a prefix per system (`github.issue`, `github.pull-request`, `github.milestone`, …). They are a convention, not a requirement; readers show an unknown kind generically. A display may offer a dedicated view for a kind it knows (poimen: a milestone panel for runs whose subject is `github.milestone`) and fetch more from the system itself through `subject.url`; that is a feature of the display, not of the format.
 - **Tasks** may run in parallel and are flat; `parent` only groups them. The run state lists open tasks instead of one current task.
 - **Attention** is resolved by `attention.resolved` with its `id`, and implicitly by `task.finished` of its task and by `run.finished`.
 - **Host** is an open map with namespaced keys (`"herdr.pane": "w1:p2"`, `"poimen.terminal": "t3"`). The core names no display; each display reads its own key.
@@ -55,7 +57,8 @@ A display MUST be able to show a run from the core alone; a profile is never req
 
 | Shown | From the core |
 | :-- | :-- |
-| what is worked on | `subject.id`, `subject.title` of the open tasks |
+| what the run works on | `subject` of `run.started` |
+| what is worked on now | `subject.id`, `subject.title` of the open tasks |
 | current step | `step.name`, `step.text` |
 | pull request, log, release candidate | `links[]` (`rel`) |
 | progress | `progress.done` / `progress.total` |
@@ -99,8 +102,8 @@ The core is the format. Transport and location are bindings:
   - deliver maps its vocabulary onto the core: `issue` → `task` plus `subject`, `prUrl` → `links`, `issue.finished` outcomes → `outcome` plus `deliver.outcome`, `milestone.progress` → `progress`.
   - Two schemas per run (core plus profile) and two fixture sets (core in agent-events, profile in skills).
   - GravionLabs/skills#452 pins `v0.1.0` and writes core plus deliver profile; GravionLabs/herdr-plugins#222 and GravionLabs/poimen#544 pin `v0.1.0` and read the core only.
-  - The poimen Deliver panel becomes a panel for any run; the herdr tokens are derived from the core, so the token fixtures belong to herdr-plugins.
-  - Deliver details that the core does not carry (release review round, milestone key) are not shown by generic displays unless they are expressed as links, attention or progress.
+  - The poimen Deliver panel becomes a panel for any run, plus a milestone panel for runs whose subject is `github.milestone`, from any writer; the herdr tokens are derived from the core, so the token fixtures belong to herdr-plugins.
+  - Deliver details that the core does not carry (release review round) are not shown by generic displays unless they are expressed as links, attention or progress.
 - Follow-ups: core schema and state schema with fixtures, `jsonl-file` binding spec, profile guide with example profile, validator CLI and Action, Pages publishing, then `v0.1.0`.
 
 ## Alternatives
