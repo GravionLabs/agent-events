@@ -17,6 +17,7 @@ Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-cor
 | `schema/v0/core.schema.json`                       | one line of a run file                                                                               |
 | `fixtures/events/valid/*.jsonl`, `invalid/*.jsonl` | writer fixtures: accepted and rejected run files                                                     |
 | [docs/subject-kinds.md](docs/subject-kinds.md)     | conventional `subject.kind` values                                                                   |
+| [docs/profiles.md](docs/profiles.md)               | how to write a profile, with an example in `examples/profiles/example/` |
 | [CHANGELOG.md](CHANGELOG.md)                       | versions                                                                                             |
 
 ## Using it

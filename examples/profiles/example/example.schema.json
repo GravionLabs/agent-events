@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/profiles/example/v1/example.schema.json",
+  "title": "example profile v1",
+  "description": "Checks the types and fields of the example profile. It is applied in addition to the core schema, to every line of a run that declares example@1.",
+  "type": "object",
+  "properties": {
+    "example": {
+      "type": "object",
+      "properties": {
+        "reviewer": { "type": "string", "minLength": 1 },
+        "verdict": { "enum": ["approved", "changes-requested"] },
+        "round": { "type": "integer", "minimum": 1 }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "example.review.requested" } }, "required": ["type"] },
+      "then": {
+        "required": ["example"],
+        "properties": { "example": { "required": ["reviewer", "round"] } } } },
+    { "if": { "properties": { "type": { "const": "example.review.completed" } }, "required": ["type"] },
+      "then": {
+        "required": ["example"],
+        "properties": { "example": { "required": ["verdict", "round"] } } } }
+  ]
+}
