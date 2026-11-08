@@ -1,69 +1,87 @@
-# agent-events specification, v1
+# agent-events core specification
 
-The key words MUST, SHOULD and MAY are used as in RFC 2119.
+The key words MUST, SHOULD and MAY are used as in RFC 2119. This document is the core; see [ADR 0001](docs/adr/0001-general-core-with-profiles-and-bindings.md) for the reasons. Status: 0.x, may break.
 
 ## Model
 
-A **run** is one execution of an agent workflow (a loop, an interactive session). It writes **events** to an append-only **run file**. The **state** of a run is the fold of its events. Writers never keep state that readers need; readers never write.
+A **run** is one execution of an agent workflow. It writes **events** to an append-only **run file** (JSON Lines, UTF-8, one event per line, `<run>.jsonl`). The **state** of a run is the fold of its events. Writers keep no state that readers need; readers never write. A run has one writer process tree; lines are appended whole; a reader replays the file and then follows it, and MUST skip an incomplete last line.
 
-## Run file
+## Events
 
-- JSON Lines, UTF-8, one event per line, named `<run>.jsonl`.
-- Default location `<git-common-dir>/.agents/events/` (`git rev-parse --git-common-dir`, the same from every worktree), not committed. `AGENT_EVENTS_DIR` overrides it.
-- A run has exactly one writer process tree. Lines are appended whole. A reader MUST skip an incomplete last line.
-- A reader replays the file from the start and then follows it.
+Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event has:
 
-## Event
-
-Schema: [`schema/progress-event.schema.json`](schema/progress-event.schema.json).
-
-Every event has `v` (1), `seq` (per run, starting at 1, gapless), `ts` (RFC 3339), `run`, `type` and `tone`.
+| Field | Meaning |
+| :-- | :-- |
+| `v` | format major, `1` |
+| `seq` | per run, from 1, gapless |
+| `ts` | RFC 3339 |
+| `run` | run id, equal on every line of the file |
+| `type` | event type |
+| `tone` | `neutral`, `info`, `success`, `warning`, `danger` |
+| `needsYou` | optional boolean |
 
 | `type` | Carries |
 | :-- | :-- |
-| `run.started` | `source` (`loop` or `session`), `harness`, `model`, `repository`, `milestone` (`key`, `title`, `url`), `pid`, `host` (`poimenTerminal`, `herdrPane`) |
-| `milestone.progress` | `closed`, `total` |
-| `issue.started` | `issue` (`number`, `title`, `url`) |
-| `step.finished` | `issue`, `step` (`name`, `n`, `total`, `text`), `prUrl` |
-| `attention` | `issue`, `kind` (`pr_opened`, `review_fix`, `ci_red`, `paused`, `blocked`, `needs_you`, `release_test`), `reason`, `needsYou` |
-| `issue.finished` | `issue`, `outcome` (`delivered`, `blocked`, `paused`, `skipped`) |
-| `release.updated` | release state, `reviewRound`, `rcUrl`, `rcVersion`, `testIssue` |
-| `run.finished` | `result` (`done`, `max reached`, `blocked`, `no progress`, …) |
+| `run.started` | `profiles` (`["<name>@<major>"]`), `host`, optional `agent` (`harness`, `model`), optional `subject` |
+| `run.finished` | `outcome` (`succeeded`, `failed`, `cancelled`), optional `reason` |
+| `task.started` | `task` (id, unique in the run), optional `parent` (task id), `subject` |
+| `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` |
+| `step.started` | `task`, `step` (`name`, optional `n`, `total`, `text`) |
+| `step.finished` | `task`, `step`, optional `links` |
+| `progress` | optional `task`, `done`, `total`, optional `label` |
+| `attention` | `id`, optional `task`, `reason`, `needsYou`, optional `links` |
+| `attention.resolved` | `id` |
 
-The event vocabulary is borrowed from AG-UI. agent-events describes domain progress (issue, step, result, PR, milestone), which AG-UI, ACP, A2A, MCP progress notifications and OpenTelemetry GenAI do not.
+`step.started` and `step.finished` are both optional for the writer.
+
+## Subject and links
+
+`subject` is `{kind, id, title, url}` (`url` optional). `kind` is free; conventional values are in [docs/subject-kinds.md](docs/subject-kinds.md), unknown kinds stay valid and are shown generically. `run.started` may carry a `subject` for the run as a whole (a milestone, a release); `progress` without `task` is the progress of that subject. `links` is a list of `{rel, url, title}` (`title` optional, `rel` free, for example `pull-request`, `log`).
+
+## Tasks
+
+Tasks run in parallel and are flat; `parent` only groups them. A reader lists the open tasks (started, not finished) instead of one current task.
+
+## Attention
+
+An `attention` is open until `attention.resolved` with its `id`, `task.finished` of its `task`, or `run.finished`. `needsYou` on it says a human must act.
+
+## Host
+
+`host` of `run.started` is an open map of namespaced keys to strings (`"herdr.pane": "w1:p2"`, `"poimen.terminal": "t3"`). A key is `<namespace>.<name>`. The core names no display; each display reads its own key.
 
 ## Tone
 
-`tone` is `neutral`, `info`, `success`, `warning` or `danger`. The **writer** decides it once; each display maps it to its own palette and MUST NOT derive it again. Colour codes never appear in an event.
+`tone` and `needsYou` are set by the writer. A display maps tone to its palette and MUST NOT derive it again; colour codes never appear in an event. When which tone applies is a profile rule, not a core rule.
 
-| Event | Tone |
+## Profiles
+
+A profile adds types, fields, tone rules and state for one domain. Types are `<profile>.<name>` (`deliver.release.updated`); fields sit under an object of the same name (`"deliver": {...}`). A run declares its profiles in `run.started` as `<name>@<major>` (`["deliver@1"]`; name `[a-z][a-z0-9-]*`). Readers ignore profiles they do not know. Profiles live with their owner, not in this repository.
+
+## Displays are core readers
+
+A display MUST be able to show a run from the core alone; a profile is never required. Displays depend on agent-events only.
+
+| Shown | From the core |
 | :-- | :-- |
-| `attention` `pr_opened` | success |
-| `attention` `review_fix`, `paused`, `needs_you`, `release_test` | warning |
-| `attention` `ci_red`, `blocked` | danger |
-| `step.finished` step `done`, `pr`, `merge`, `merged` | success |
-| `step.finished` step `review` with a result containing "fix" | warning |
-| `step.finished` step `ci` with a result matching red or fail | danger |
-| `step.finished` step or result `paused` / `blocked` | warning / danger |
-| `issue.finished` `delivered` / `paused` / `blocked` / `skipped` | success / warning / danger / neutral |
-| `run.finished` `done` / `no progress` / `blocked` / other | success / warning / danger / neutral |
-| every other event | neutral |
-
-`needs_you` and `release_test` also set `needsYou: true`.
-
-## Projection
-
-The fold of a run is described by [`schema/deliver-run-state.schema.json`](schema/deliver-run-state.schema.json); its `description` holds the folding rules. A reducer is correct when, for every `fixtures/<case>.jsonl`, it produces `fixtures/<case>.state.json`.
-
-## Lifecycle
-
-- `run.finished` closes a run.
-- A run without `run.finished` whose `pid` no longer lives, or whose file has not changed for one hour, is `abandoned`.
-- A writer MAY delete finished and abandoned runs older than 7 days and keep at most the last 100. Readers never delete.
+| what the run works on | `subject` of `run.started` |
+| what is worked on now | `subject` of the open tasks |
+| current step | `step.name`, `step.text` |
+| pull request, log, release candidate | `links[]` (`rel`) |
+| progress | `progress.done` / `progress.total` |
+| colour, "needs you" | `tone`, `needsYou`, open `attention` |
+| result per task and run | `outcome`, `reason` |
 
 ## Compatibility
 
-- Fields are only ever added. A reader ignores unknown fields and unknown event types.
-- A change in the meaning of an existing field or type bumps `v`.
-- A new event type or tone rule comes with a fixture.
-- Releases are git tags (`v1.x.y`). Consumers pin a tag.
+- Fields and types are only added within a major. Readers ignore unknown fields, types and profiles (they stay valid); prefixed profile fields too.
+- A change in meaning bumps `v`.
+- Every new type or rule comes with a fixture in `fixtures/events/`.
+- Fixtures: `valid/*.jsonl` MUST be accepted, `invalid/*.jsonl` MUST be rejected, one case per rule. `npm test` checks both.
+
+## Security
+
+- Events MUST NOT contain secrets (tokens, passwords, keys) or prompts and model output. A writer reports progress, not content.
+- A line MUST NOT exceed 16384 bytes (UTF-8, without the newline). A reader MAY reject a longer line.
+- `run` matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`: it is also the file name, so no path separators, no leading dot, no spaces.
+- Readers treat all text as untrusted: no markup rendering, no execution, URLs opened only by explicit user action.
