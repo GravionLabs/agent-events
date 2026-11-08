@@ -23,7 +23,10 @@ describe('install from a packed tarball', () => {
         encoding: 'utf8',
       })
       const tarball = join(packDir, JSON.parse(out)[0].filename)
-      execFileSync('npm', ['install', tarball, '--no-audit', '--no-fund'], { cwd: project, stdio: 'pipe' })
+      execFileSync('npm', ['install', tarball, '--no-audit', '--no-fund'], {
+        cwd: project,
+        stdio: 'pipe',
+      })
       const r = spawnSync('npx', ['--no-install', 'agent-events', 'validate', fixture], {
         cwd: project,
         encoding: 'utf8',

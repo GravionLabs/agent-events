@@ -52,7 +52,7 @@ Inputs: `files` (file or glob), `profiles` (one path or URL per line), `version`
 ## Install
 
 ```sh
-npm install github:GravionLabs/agent-events#v0.1.0   # builds dist/ through the prepare script
+npm install github:GravionLabs/agent-events#v0.1.0   # builds dist/ through the prepare script (newer npm warns until you approve it: npm install-scripts approve agent-events)
 npm install https://github.com/GravionLabs/agent-events/releases/download/v0.1.0/agent-events-0.1.0.tgz
 npx agent-events validate runs/*.jsonl
 ```
