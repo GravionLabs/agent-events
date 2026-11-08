@@ -4,7 +4,7 @@ The key words MUST, SHOULD and MAY are used as in RFC 2119. This document is the
 
 ## Model
 
-A **run** is one execution of an agent workflow. It writes **events** to an append-only **run file** (JSON Lines, UTF-8, one event per line, `<run>.jsonl`). The **state** of a run is the fold of its events. Writers keep no state that readers need; readers never write. A run has one writer process tree; lines are appended whole; a reader replays the file and then follows it, and MUST skip an incomplete last line.
+A **run** is one execution of an agent workflow. It writes **events**, an ordered sequence of JSON objects. The **state** of a run is the fold of its events. Writers keep no state that readers need; readers never write. How events are stored, found and followed is a binding: see [bindings/jsonl-file.md](bindings/jsonl-file.md).
 
 ## Events
 
@@ -70,9 +70,9 @@ Folding rules:
 - `progress` with a `task` belongs to that open task; without `task` it is the progress of the run subject, latest wins.
 - An attention is resolved by `attention.resolved` with its `id`, by `task.finished` of its `task`, or by `run.finished` (all). A repeated `attention` for an open id and an unknown `attention.resolved` are ignored.
 - Events with `seq` not above the last folded one are ignored. A jump in `seq` is not an error for a reader: the missing range is added to `gaps` and the later events are folded anyway.
-- Lines that are not JSON, including an incomplete last line, are skipped. Unknown types (profile types too) and unknown fields are ignored, but their `seq` counts.
+- Lines that are not JSON are skipped. Unknown types (profile types too) and unknown fields are ignored, but their `seq` counts.
 - Nothing folds after `run.finished`.
-- `abandoned` is decided by the reader: no `run.finished` and the last event older than one hour at the reader's clock (the `jsonl-file` binding adds a writer `pid` that is gone). Fixtures fix the clock in `<case>.now`, default `2026-11-08T10:30:00.000Z`.
+- `abandoned` is decided by the reader: no `run.finished` and the last event older than one hour at the reader's clock (the [`jsonl-file` binding](bindings/jsonl-file.md) adds a writer `pid` that is gone). Fixtures fix the clock in `<case>.now`, default `2026-11-08T10:30:00.000Z`.
 
 ## Host
 
@@ -111,5 +111,5 @@ A display MUST be able to show a run from the core alone; a profile is never req
 
 - Events MUST NOT contain secrets (tokens, passwords, keys) or prompts and model output. A writer reports progress, not content.
 - A line MUST NOT exceed 16384 bytes (UTF-8, without the newline). A reader MAY reject a longer line.
-- `run` matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`: it is also the file name, so no path separators, no leading dot, no spaces.
+- `run` matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`: no path separators, no leading dot, no spaces, so bindings can use it as a name.
 - Readers treat all text as untrusted: no markup rendering, no execution, URLs opened only by explicit user action.
