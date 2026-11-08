@@ -49,6 +49,14 @@ r1.jsonl:9: note: incomplete last line skipped
 
 Inputs: `files` (file or glob), `profiles` (one path or URL per line), `version` (npm version of `agent-events`, default `latest`).
 
+## Install
+
+```sh
+npm install github:GravionLabs/agent-events#v0.1.0   # builds dist/ through the prepare script (newer npm warns until you approve it: npm install-scripts approve agent-events)
+npm install https://github.com/GravionLabs/agent-events/releases/download/v0.1.0/agent-events-0.1.0.tgz
+npx agent-events validate runs/*.jsonl
+```
+
 ## Using it
 
 Pin a version tag. Read the schema from `https://raw.githubusercontent.com/GravionLabs/agent-events/<tag>/schema/v0/core.schema.json` or copy the fixtures into your tests, and check your writer against `fixtures/events`.
