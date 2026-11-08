@@ -13,7 +13,7 @@ body = """
 {% else -%}
 ## [Unreleased]
 {% endif -%}
-{% if version == "v0.1.0" -%}
+{% if version == "v0.1.0" %}
 ### Release notes
 
 - Schemas are served on GitHub Pages under `https://gravionlabs.github.io/agent-events/schema/v0/` (workflow `pages.yml`); a test checks that each `$id` equals its served path.

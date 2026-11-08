@@ -25,8 +25,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format .",
-    "changelog": "git-cliff -c cliff.toml -o CHANGELOG.md",
-    "changelog:release": "git-cliff -c cliff.toml -o CHANGELOG.md --tag v$npm_package_version"
+    "changelog": "git-cliff -c cliff.toml -o CHANGELOG.md --tag v$npm_package_version"
   },
   "dependencies": {
     "ajv": "8.17.1",
