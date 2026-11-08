@@ -27,7 +27,13 @@ Every type and every fold rule of a profile comes with a fixture: valid run file
 
 ## Validation
 
-A run file is valid when every line is valid against the core schema and, for a declared profile, against the profile schema. The profile schema checks only its own types and fields: it requires the fields of its types and leaves everything else open. Until the validator CLI exists, the test `test/profile.ts` shows how to apply both schemas with Ajv.
+A run file is valid when every line is valid against the core schema and, for a declared profile, against the profile schema. The profile schema checks only its own types and fields: it requires the fields of its types and leaves everything else open. The validator CLI applies both schemas. From `examples/profiles/example/`:
+
+```sh
+npx agent-events validate review.jsonl --profile example.schema.json
+```
+
+`--profile` takes a path or a URL and may be repeated. The test `test/profile.ts` shows the same with Ajv.
 
 ## Where profiles live
 
