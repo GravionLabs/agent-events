@@ -2,6 +2,20 @@
   "name": "agent-events",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node test/validate.mjs" },
-  "devDependencies": { "ajv": "8.17.1", "ajv-formats": "3.0.1" }
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "test": "node --test test/validate.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format:check": "biome format ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^26.0.0",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "typescript": "^5.9.0"
+  }
 }
