@@ -77,6 +77,10 @@ npm run lint        # biome lint
 npm run format:check # biome format
 ```
 
+## Release
+
+`CHANGELOG.md` is generated from the conventional commits by git-cliff (`npm run changelog:release` writes the section of the `package.json` version). Prepare the release PR from `release/next` with the version bumped in `package.json` and the regenerated changelog. Merge the release PR with a merge commit; the tag follows from the merge: the `release.yml` workflow runs on the push to `main`, checks that the `package.json` version has a `CHANGELOG.md` section (`node src/release-notes.ts --check`, also in `npm test`), creates the tag `v<version>` when it does not exist and the GitHub release with `schema/v0/*.json` and the `npm pack` tarball as assets. The release body is the changelog section of the tag. npm publish is not part of it.
+
 ## License
 
 [MIT](LICENSE)

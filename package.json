@@ -21,10 +21,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
-    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts test/install.ts",
+    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts test/install.ts test/release-workflow.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "changelog": "git-cliff -c cliff.toml -o CHANGELOG.md",
+    "changelog:release": "git-cliff -c cliff.toml -o CHANGELOG.md --tag v$npm_package_version"
   },
   "dependencies": {
     "ajv": "8.17.1",
@@ -33,6 +35,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
     "@types/node": "^26.0.0",
+    "git-cliff": "^2.14.2",
     "typescript": "^5.9.0"
   }
 }
