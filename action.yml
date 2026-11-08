@@ -5,7 +5,7 @@ branding:
   color: blue
 inputs:
   files:
-    description: File or glob of run files to validate (for example `.agents/events/*.jsonl`).
+    description: File or glob of run files to validate (for example `.git/.agents/events/*.jsonl`).
     required: true
   profiles:
     description: Profile schemas by path or URL, one per line.
