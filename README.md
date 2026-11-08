@@ -10,13 +10,13 @@ Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-cor
 
 ## Contents
 
-| Path | What |
-| :-- | :-- |
-| [SPEC.md](SPEC.md) | the core: events, subject and links, tasks, attention, host, tone, profiles, compatibility, security |
-| `schema/v0/core.schema.json` | one line of a run file |
-| `fixtures/events/valid/*.jsonl`, `invalid/*.jsonl` | writer fixtures: accepted and rejected run files |
-| [docs/subject-kinds.md](docs/subject-kinds.md) | conventional `subject.kind` values |
-| [CHANGELOG.md](CHANGELOG.md) | versions |
+| Path                                               | What                                                                                                 |
+| :------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
+| [SPEC.md](SPEC.md)                                 | the core: events, subject and links, tasks, attention, host, tone, profiles, compatibility, security |
+| `schema/v0/core.schema.json`                       | one line of a run file                                                                               |
+| `fixtures/events/valid/*.jsonl`, `invalid/*.jsonl` | writer fixtures: accepted and rejected run files                                                     |
+| [docs/subject-kinds.md](docs/subject-kinds.md)     | conventional `subject.kind` values                                                                   |
+| [CHANGELOG.md](CHANGELOG.md)                       | versions                                                                                             |
 
 ## Using it
 
@@ -24,6 +24,17 @@ Pin a version tag. Read the schema from `https://raw.githubusercontent.com/Gravi
 
 ```sh
 npm install && npm test   # validates all fixtures against the core schema
+```
+
+## Development
+
+Toolchain: Node.js 26 or newer (runs TypeScript directly, no build step), TypeScript (type check only), Biome (lint and format) and `node:test` with `node:assert`.
+
+```sh
+npm test            # node --test test/validate.ts
+npm run typecheck   # tsc --noEmit
+npm run lint        # biome lint
+npm run format:check # biome format
 ```
 
 ## License
