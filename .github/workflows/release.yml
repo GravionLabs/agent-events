@@ -19,5 +19,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
+          node src/release-notes.ts "$TAG" > "$RUNNER_TEMP/notes.md"
           gh release create "$TAG" schema/v0/*.json \
-            --title "$TAG" --generate-notes --verify-tag
+            --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag
