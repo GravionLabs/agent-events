@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
-    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts test/install.ts test/release-workflow.ts",
+    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts test/install.ts test/release-workflow.ts test/action.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format .",

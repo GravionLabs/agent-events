@@ -12,9 +12,9 @@ inputs:
     required: false
     default: ""
   version:
-    description: Version of the agent-events npm package to run.
+    description: npm version of agent-events to run (for example `0.2.0`). Empty (the default) builds the CLI from the Action's own ref.
     required: false
-    default: latest
+    default: ""
 runs:
   using: composite
   steps:
@@ -26,9 +26,16 @@ runs:
         FILES: ${{ inputs.files }}
         PROFILES: ${{ inputs.profiles }}
         VERSION: ${{ inputs.version }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         args=()
         while IFS= read -r p; do
           [ -n "$p" ] && args+=(--profile "$p")
         done <<< "$PROFILES"
-        npx --yes "agent-events@${VERSION}" validate "$FILES" "${args[@]}"
+        if [ -n "$VERSION" ]; then
+          npx --yes "agent-events@${VERSION}" validate "$FILES" "${args[@]}"
+        else
+          # default: the package is not on npm, so build the CLI from the Action's own checkout
+          (cd "$ACTION_PATH" && npm ci --no-audit --no-fund && npm run build)
+          node "$ACTION_PATH/dist/cli.js" validate "$FILES" "${args[@]}"
+        fi

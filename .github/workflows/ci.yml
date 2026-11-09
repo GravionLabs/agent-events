@@ -19,3 +19,11 @@ jobs:
       - run: npm run format:check
       # schema lint, fixtures, validator tests and $id check
       - run: npm test
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # the Action with defaults (no version input)
+      - uses: ./
+        with:
+          files: fixtures/events/valid/*.jsonl
