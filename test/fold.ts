@@ -80,12 +80,15 @@ export function foldRun(text: string, now: Date): Json {
       }
       case 'step.started':
       case 'step.finished': {
-        const t = tasks.get(e.task)
-        if (!t) break
-        t.step = e.step
+        const t = e.task === undefined ? undefined : tasks.get(e.task)
+        if (e.task !== undefined && !t) break
+        if (t) t.step = e.step
+        else state.step = e.step
         if (e.type === 'step.finished' && e.links?.length) {
-          t.links ??= []
-          addLinks(t.links, e.links)
+          if (t) {
+            t.links ??= []
+            addLinks(t.links, e.links)
+          }
           addLinks(links, e.links)
         }
         break

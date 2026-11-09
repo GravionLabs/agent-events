@@ -26,8 +26,8 @@ Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event 
 | `run.finished` | `outcome` (`succeeded`, `failed`, `cancelled`), optional `reason` (code), optional `text` |
 | `task.started` | `task` (id, unique in the run), optional `parent` (task id), `subject` |
 | `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` (code), optional `text` |
-| `step.started` | `task`, `step` (`name`, optional `n`, `total`, `text`) |
-| `step.finished` | `task`, `step`, optional `links` |
+| `step.started` | optional `task`, `step` (`name`, optional `n`, `total`, `text`) |
+| `step.finished` | optional `task`, `step`, optional `links` |
 | `progress` | optional `task`, `done`, `total`, optional `label` |
 | `attention` | `id`, optional `task`, `reason` (code), optional `text`, `needsYou`, optional `links` |
 | `attention.resolved` | `id` |
@@ -58,6 +58,7 @@ Schema: [`schema/v0/run-state.schema.json`](schema/v0/run-state.schema.json). Th
 | `outcome`, `reason`, `text` | `run.finished` |
 | `subject` | `subject` of `run.started` |
 | `progress` | latest `progress` without `task`: progress of the run subject |
+| `step` | latest `step` of `step.started` or `step.finished` without `task`: the step of the run |
 | `tasks` | open tasks in start order: `task`, `parent`, `subject`, last `step`, latest `progress` of the task, `links` |
 | `finished` | finished tasks per `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`) in finish order, with `reason` and `text` |
 | `attentions` | open attentions in raise order |
@@ -69,6 +70,7 @@ Folding rules:
 
 - Tasks are parallel and flat. `task.started` opens a task, `task.finished` moves it to `finished`; `parent` only groups and never closes or opens anything. A repeated `task.started` for a known id, and any event for an unknown or finished task, are ignored.
 - The last step of a task is the `step` of its latest `step.started` or `step.finished`.
+- `step.started` and `step.finished` without `task` belong to the run: the latest one is the run `step`. With a `task`, the step belongs to that open task.
 - `progress` with a `task` belongs to that open task; without `task` it is the progress of the run subject, latest wins.
 - An attention is resolved by `attention.resolved` with its `id`, by `task.finished` of its `task`, or by `run.finished` (all). A repeated `attention` for an open id and an unknown `attention.resolved` are ignored.
 - Events with `seq` not above the last folded one are ignored. A jump in `seq` is not an error for a reader: the missing range is added to `gaps` and the later events are folded anyway.
@@ -103,7 +105,7 @@ A display MUST be able to show a run from the core alone; a profile is never req
 | :-- | :-- |
 | what the run works on | `subject` of `run.started` |
 | what is worked on now | `subject` of the open tasks |
-| current step | `step.name`, `step.text` |
+| current step | `step.name`, `step.text` of the run `step` and of the open tasks |
 | pull request, log, release candidate | `links[]` (`rel`) |
 | progress | `progress.done` / `progress.total` |
 | colour, "needs you" | `tone`, `needsYou`, open `attention` |
