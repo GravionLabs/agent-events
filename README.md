@@ -1,9 +1,11 @@
 # agent-events
 
-agent-events is the event format in which an agent run leaves its progress: one JSON Lines file per run, one event per line.
+agent-events is an event format for agent runs: the events in which a run leaves its progress. The format is independent of harness, skill and transport. Bindings carry it over a transport: a file, or a stream such as MCP. The first binding is JSON Lines, one JSON Lines file per run with one event per line ([bindings/jsonl-file.md](bindings/jsonl-file.md)).
 
-- A **writer** (an emitter such as `Report-Progress.ps1` of [GravionLabs/skills](https://github.com/GravionLabs/skills)) appends events.
-- A **reader** (poimen, a herdr plugin, an agent) replays the file and follows it. The state of a run is the fold of its events.
+Writers and readers are examples of what uses the format, not parts of it:
+
+- A **writer** appends events, for example `Report-Progress.ps1` of [GravionLabs/skills](https://github.com/GravionLabs/skills).
+- A **reader** replays the events and follows them, for example poimen, herdr or an agent. The state of a run is the fold of its events.
 - agent-events is this specification, the JSON Schemas and the fixtures that every reader checks its own fold against. Besides that it ships a validator, the `agent-events` CLI and a GitHub Action.
 
 Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-core-with-profiles-and-bindings.md)). Read the [specification](SPEC.md).
