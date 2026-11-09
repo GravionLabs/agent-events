@@ -22,7 +22,7 @@ Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event 
 
 | `type` | Carries |
 | :-- | :-- |
-| `run.started` | `profiles` (`["<name>@<major>"]`), `host`, optional `agent` (`harness`, `model`), optional `subject` |
+| `run.started` | `profiles` (`["<name>@<major>"]`), optional `profileSchemas` (`{"<name>@<major>": "https://…"}`), `host`, optional `agent` (`harness`, `model`), optional `subject` |
 | `run.finished` | `outcome` (`succeeded`, `failed`, `cancelled`), optional `reason` (code), optional `text` |
 | `task.started` | `task` (id, unique in the run), optional `parent` (task id), `subject` |
 | `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` (code), optional `text` |
@@ -95,7 +95,7 @@ Writers SHOULD finish every task (`task.finished`) before `run.finished`, so the
 
 ## Profiles
 
-A profile adds types, fields, tone rules and state for one domain. Types are `<profile>.<name>` (`deliver.release.updated`); fields sit under an object of the same name (`"deliver": {...}`). A run declares its profiles in `run.started` as `<name>@<major>` (`["deliver@1"]`; name `[a-z][a-z0-9-]*`). Readers ignore profiles they do not know. Profiles live with their owner, not in this repository.
+A profile adds types, fields, tone rules and state for one domain. Types are `<profile>.<name>` (`deliver.release.updated`); fields sit under an object of the same name (`"deliver": {...}`). A run declares its profiles in `run.started` as `<name>@<major>` (`["deliver@1"]`; name `[a-z][a-z0-9-]*`). A run MAY add `profileSchemas`, an object from such a key to the `https://` URL of that profile's JSON Schema, so a validator can find it; a key not in `profiles` is a validator note, not an error. Readers never need the schema and ignore profiles they do not know. Profiles live with their owner, not in this repository.
 
 ## Displays are core readers
 

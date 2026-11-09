@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
-import { describe, it } from 'node:test'
+import { afterEach, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { checkRun, hasErrors } from '../src/check.ts'
 import { main } from '../src/cli.ts'
@@ -98,6 +98,68 @@ describe('example profile', () => {
     const { code, err } = await run(['validate', '-', '--profile', '/no/such.json'], started)
     assert.equal(code, 1)
     assert.match(err[0] ?? '', /^profile:/)
+  })
+})
+
+describe('declared profiles', () => {
+  const dir = 'examples/profiles/example'
+  const schema = path(`${dir}/example.schema.json`)
+  const review = path(`${dir}/review.jsonl`)
+  const url = 'https://example.invalid/profiles/example/v1/example.schema.json'
+  const realFetch = globalThis.fetch
+  afterEach(() => {
+    globalThis.fetch = realFetch
+  })
+  const stub = (respond: (u: string) => Response) => {
+    const calls: string[] = []
+    globalThis.fetch = (async (u: string) => {
+      calls.push(String(u))
+      return respond(String(u))
+    }) as typeof fetch
+    return calls
+  }
+  const exampleSchema = () => Response.json(JSON.parse(read(`${dir}/example.schema.json`)))
+
+  it('fetches the declared URL and applies it', async () => {
+    const calls = stub(exampleSchema)
+    const ok = await run(['validate', review, '--declared-profiles'])
+    assert.deepEqual([ok.code, ok.out, calls], [0, [], [url]])
+    const bad = read(`${dir}/review.jsonl`).replace(/"verdict":"[a-z-]+",?/, '')
+    const res = await run(['validate', '-', '--declared-profiles'], bad)
+    assert.equal(res.code, 1)
+    assert.match(res.out.join('\n'), /error: schema/)
+  })
+  it('fetches nothing without the flag', async () => {
+    const calls = stub(exampleSchema)
+    const { code } = await run(['validate', review])
+    assert.deepEqual([code, calls], [0, []])
+  })
+  it('lets a --profile with the same $id replace the fetch', async () => {
+    const calls = stub(() => new Response('', { status: 500 }))
+    const { code, out } = await run([
+      'validate',
+      review,
+      '--declared-profiles',
+      '--profile',
+      schema,
+    ])
+    assert.deepEqual([code, out, calls], [0, [], []])
+  })
+  it('caches a URL across files', async () => {
+    const calls = stub(exampleSchema)
+    const { code } = await run(['validate', review, review, '--declared-profiles'])
+    assert.deepEqual([code, calls], [0, [url]])
+  })
+  it('prints profile: <url>: … and exits 1 when the fetch fails', async () => {
+    stub(() => new Response('', { status: 404 }))
+    const { code, err } = await run(['validate', review, '--declared-profiles'])
+    assert.equal(code, 1)
+    assert.equal(err[0], `profile: ${url}: HTTP 404`)
+  })
+  it('does nothing for a file without profileSchemas', async () => {
+    const calls = stub(exampleSchema)
+    const { code } = await run(['validate', '-', '--declared-profiles'], started)
+    assert.deepEqual([code, calls], [0, []])
   })
 })
 

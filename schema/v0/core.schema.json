@@ -20,6 +20,11 @@
         "required": ["profiles", "host"],
         "properties": {
           "profiles": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*@[0-9]+$" } },
+          "profileSchemas": {
+            "type": "object",
+            "propertyNames": { "pattern": "^[a-z][a-z0-9-]*@[0-9]+$" },
+            "additionalProperties": { "type": "string", "format": "uri", "pattern": "^https://" }
+          },
           "host": { "$ref": "#/$defs/host" },
           "agent": { "type": "object", "properties": { "harness": { "type": "string" }, "model": { "type": "string" } } },
           "subject": { "$ref": "#/$defs/subject" }
