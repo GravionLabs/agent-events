@@ -47,6 +47,11 @@ export function foldRun(text: string, now: Date): Json {
         state.outcome = e.outcome
         if (e.reason !== undefined) state.reason = e.reason
         attentions.length = 0
+        for (const t of tasks.values()) {
+          const { step: _s, progress: _p, ...rest } = t
+          finished.cancelled.push({ ...rest, reason: 'run finished' })
+        }
+        tasks.clear()
         break
       case 'task.started':
         if (!seen.has(e.task)) {
