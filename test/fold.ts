@@ -46,10 +46,11 @@ export function foldRun(text: string, now: Date): Json {
         state.status = 'finished'
         state.outcome = e.outcome
         if (e.reason !== undefined) state.reason = e.reason
+        if (e.text !== undefined) state.text = e.text
         attentions.length = 0
         for (const t of tasks.values()) {
           const { step: _s, progress: _p, ...rest } = t
-          finished.cancelled.push({ ...rest, reason: 'run finished' })
+          finished.cancelled.push({ ...rest, reason: 'run-finished', text: 'run finished' })
         }
         tasks.clear()
         break
@@ -68,7 +69,11 @@ export function foldRun(text: string, now: Date): Json {
         if (!t || !(e.outcome in finished)) break
         tasks.delete(e.task)
         const { step: _s, progress: _p, ...rest } = t
-        finished[e.outcome].push({ ...rest, ...(e.reason !== undefined && { reason: e.reason }) })
+        finished[e.outcome].push({
+          ...rest,
+          ...(e.reason !== undefined && { reason: e.reason }),
+          ...(e.text !== undefined && { text: e.text }),
+        })
         for (let i = attentions.length - 1; i >= 0; i--)
           if (attentions[i].task === e.task) attentions.splice(i, 1)
         break
@@ -100,6 +105,7 @@ export function foldRun(text: string, now: Date): Json {
           id: e.id,
           ...(e.task !== undefined && { task: e.task }),
           reason: e.reason,
+          ...(e.text !== undefined && { text: e.text }),
           needsYou: e.needsYou,
           ...(e.links && { links: e.links }),
         })

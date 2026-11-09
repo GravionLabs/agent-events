@@ -3,7 +3,8 @@
   "run": "r5",
   "status": "finished",
   "outcome": "failed",
-  "reason": "gave up",
+  "reason": "gave-up",
+  "text": "gave up",
   "tasks": [],
   "finished": {
     "succeeded": [],
@@ -17,7 +18,8 @@
           "title": "Reducer",
           "url": "https://github.com/GravionLabs/demo/issues/1"
         },
-        "reason": "run finished"
+        "reason": "run-finished",
+        "text": "run finished"
       }
     ],
     "skipped": []
