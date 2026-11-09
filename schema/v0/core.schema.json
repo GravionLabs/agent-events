@@ -29,7 +29,8 @@
         "required": ["outcome"],
         "properties": {
           "outcome": { "enum": ["succeeded", "failed", "cancelled"] },
-          "reason": { "type": "string" }
+          "reason": { "$ref": "#/$defs/reason" },
+          "text": { "$ref": "#/$defs/text" }
         } } },
     { "if": { "properties": { "type": { "const": "task.started" } }, "required": ["type"] },
       "then": {
@@ -45,7 +46,8 @@
         "properties": {
           "task": { "$ref": "#/$defs/id" },
           "outcome": { "enum": ["succeeded", "failed", "cancelled", "skipped"] },
-          "reason": { "type": "string" }
+          "reason": { "$ref": "#/$defs/reason" },
+          "text": { "$ref": "#/$defs/text" }
         } } },
     { "if": { "properties": { "type": { "const": "step.started" } }, "required": ["type"] },
       "then": {
@@ -74,7 +76,8 @@
         "properties": {
           "id": { "$ref": "#/$defs/id" },
           "task": { "$ref": "#/$defs/id" },
-          "reason": { "type": "string" },
+          "reason": { "$ref": "#/$defs/reason" },
+          "text": { "$ref": "#/$defs/text" },
           "needsYou": { "type": "boolean" },
           "links": { "$ref": "#/$defs/links" }
         } } },
@@ -84,6 +87,8 @@
   "$defs": {
     "runId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$", "description": "also the file name <run>.jsonl" },
     "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "reason": { "type": "string", "pattern": "^[a-z][a-z0-9.-]*$", "description": "machine-readable code; profile reasons are prefixed <profile>." },
+    "text": { "type": "string", "minLength": 1, "description": "the human sentence for the reason" },
     "subject": {
       "type": "object",
       "required": ["kind", "id", "title"],

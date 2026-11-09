@@ -4,6 +4,7 @@
   "status": "finished",
   "outcome": "failed",
   "reason": "stopped",
+  "text": "stopped",
   "tasks": [],
   "finished": {
     "succeeded": [
@@ -17,13 +18,15 @@
       {
         "task": "t1",
         "subject": { "kind": "github.issue", "id": "GravionLabs/demo#1", "title": "One" },
-        "reason": "run finished"
+        "reason": "run-finished",
+        "text": "run finished"
       },
       {
         "task": "t2",
         "parent": "t1",
         "subject": { "kind": "github.issue", "id": "GravionLabs/demo#2", "title": "Two" },
-        "reason": "run finished"
+        "reason": "run-finished",
+        "text": "run finished"
       }
     ],
     "skipped": []

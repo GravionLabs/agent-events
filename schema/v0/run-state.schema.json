@@ -11,6 +11,7 @@
     "status": { "enum": ["running", "finished", "abandoned"] },
     "outcome": { "enum": ["succeeded", "failed", "cancelled"], "description": "only when status is finished" },
     "reason": { "type": "string" },
+    "text": { "type": "string" },
     "subject": { "$ref": "#/$defs/subject", "description": "subject of run.started" },
     "progress": { "$ref": "#/$defs/progress", "description": "latest progress without task: progress of the run subject" },
     "tasks": { "type": "array", "description": "open tasks in start order", "items": { "$ref": "#/$defs/openTask" } },
@@ -100,6 +101,7 @@
           "parent": { "type": "string" },
           "subject": { "$ref": "#/$defs/subject" },
           "reason": { "type": "string" },
+          "text": { "type": "string" },
           "links": { "$ref": "#/$defs/links" }
         }
       }
@@ -111,6 +113,7 @@
         "id": { "type": "string" },
         "task": { "type": "string" },
         "reason": { "type": "string" },
+        "text": { "type": "string" },
         "needsYou": { "type": "boolean" },
         "links": { "$ref": "#/$defs/links" }
       }

@@ -15,7 +15,7 @@ A run lists its profiles in `run.started` as `name@major`: `"profiles": ["delive
 
 ## Tone rules
 
-The core only defines the values of `tone` and `needsYou`. The profile says when which applies to its own types, for example `warning` plus `needsYou: true` when a review requests changes. The writer sets them; a display never derives them again. Reasons of `attention` for the profile are prefixed too (`example.changes-requested`).
+The core only defines the values of `tone` and `needsYou`. The profile says when which applies to its own types, for example `warning` plus `needsYou: true` when a review requests changes. The writer sets them; a display never derives them again. Reasons of `attention` for the profile are prefixed too (`example.changes-requested`). `reason` is always a code (`^[a-z][a-z0-9.-]*$`), never a sentence; the human sentence goes into the optional `text`. A display shows `text` and falls back to `reason`.
 
 ## State extension
 

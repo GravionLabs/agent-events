@@ -23,13 +23,13 @@ Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event 
 | `type` | Carries |
 | :-- | :-- |
 | `run.started` | `profiles` (`["<name>@<major>"]`), `host`, optional `agent` (`harness`, `model`), optional `subject` |
-| `run.finished` | `outcome` (`succeeded`, `failed`, `cancelled`), optional `reason` |
+| `run.finished` | `outcome` (`succeeded`, `failed`, `cancelled`), optional `reason` (code), optional `text` |
 | `task.started` | `task` (id, unique in the run), optional `parent` (task id), `subject` |
-| `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` |
+| `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` (code), optional `text` |
 | `step.started` | `task`, `step` (`name`, optional `n`, `total`, `text`) |
 | `step.finished` | `task`, `step`, optional `links` |
 | `progress` | optional `task`, `done`, `total`, optional `label` |
-| `attention` | `id`, optional `task`, `reason`, `needsYou`, optional `links` |
+| `attention` | `id`, optional `task`, `reason` (code), optional `text`, `needsYou`, optional `links` |
 | `attention.resolved` | `id` |
 
 `run.started` MUST be the first event of a run and MUST occur once; a run file that starts with another event, or repeats `run.started`, is invalid.
@@ -55,11 +55,11 @@ Schema: [`schema/v0/run-state.schema.json`](schema/v0/run-state.schema.json). Th
 | State field | From |
 | :-- | :-- |
 | `status` | `running`; `finished` after `run.finished`; `abandoned` (below) |
-| `outcome`, `reason` | `run.finished` |
+| `outcome`, `reason`, `text` | `run.finished` |
 | `subject` | `subject` of `run.started` |
 | `progress` | latest `progress` without `task`: progress of the run subject |
 | `tasks` | open tasks in start order: `task`, `parent`, `subject`, last `step`, latest `progress` of the task, `links` |
-| `finished` | finished tasks per `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`) in finish order, with `reason` |
+| `finished` | finished tasks per `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`) in finish order, with `reason` and `text` |
 | `attentions` | open attentions in raise order |
 | `needsYou` | true when an open attention has `needsYou` true |
 | `links` | `links` of `step.finished` and `attention`, first occurrence of `rel` and `url` |
@@ -73,7 +73,7 @@ Folding rules:
 - An attention is resolved by `attention.resolved` with its `id`, by `task.finished` of its `task`, or by `run.finished` (all). A repeated `attention` for an open id and an unknown `attention.resolved` are ignored.
 - Events with `seq` not above the last folded one are ignored. A jump in `seq` is not an error for a reader: the missing range is added to `gaps` and the later events are folded anyway.
 - Lines that are not JSON are skipped. Unknown types (profile types too) and unknown fields are ignored, but their `seq` counts.
-- `run.finished` moves every open task to `finished.cancelled` with `reason` `run finished`, in start order, after the tasks already finished; the task keeps `parent` and `subject` and loses `step` and `progress`. `tasks` is then empty.
+- `run.finished` moves every open task to `finished.cancelled` with `reason` `run-finished` and `text` `run finished`, in start order, after the tasks already finished; the task keeps `parent` and `subject` and loses `step` and `progress`. `tasks` is then empty.
 - Nothing folds after `run.finished`.
 - `abandoned` is decided by the reader: no `run.finished` and the last event older than one hour at the reader's clock (the [`jsonl-file` binding](bindings/jsonl-file.md) adds a writer `pid` that is gone). Fixtures fix the clock in `<case>.now`, default `2026-11-08T10:30:00.000Z`.
 
@@ -82,6 +82,10 @@ Writers SHOULD finish every task (`task.finished`) before `run.finished`, so the
 ## Host
 
 `host` of `run.started` is an open map of namespaced keys to strings (`"herdr.pane": "w1:p2"`, `"poimen.terminal": "t3"`). A key is `<namespace>.<name>`. The core names no display; each display reads its own key.
+
+## Reason and text
+
+`reason` is a machine-readable code matching `^[a-z][a-z0-9.-]*$` (`ci-red`); a profile prefixes its codes with `<profile>.` (`example.changes-requested`). The core defines no list of codes except `run-finished` of the fold. `text` is the optional human sentence (`"CI is red"`), at least one character. A reader branches on `reason`; a display SHOULD show `text` and fall back to `reason` when `text` is absent.
 
 ## Tone
 
@@ -103,7 +107,7 @@ A display MUST be able to show a run from the core alone; a profile is never req
 | pull request, log, release candidate | `links[]` (`rel`) |
 | progress | `progress.done` / `progress.total` |
 | colour, "needs you" | `tone`, `needsYou`, open `attention` |
-| result per task and run | `outcome`, `reason` |
+| result per task and run | `outcome`, `text` (fall back to `reason`) |
 
 ## Compatibility
 
