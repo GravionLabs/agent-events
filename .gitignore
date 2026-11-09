@@ -1,6 +1,6 @@
 node_modules
 dist
 
-public/schema/
-.vitepress/dist/
-.vitepress/cache/
+site/public/schema/
+site/.vitepress/dist/
+site/.vitepress/cache/
