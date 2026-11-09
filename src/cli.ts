@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { globSync, readFileSync } from 'node:fs'
-import { checkRun, hasErrors } from './check.ts'
+import { checkRun, compileSchemas, declaredSchemas, hasErrors } from './check.ts'
 
-const USAGE = `Usage: agent-events validate <file|glob|-> [more files] [--profile <path|url>]...
+const USAGE = `Usage: agent-events validate <file|glob|-> [more files] [--profile <path|url>]... [--declared-profiles]
 
 Checks run files (JSON Lines) against the core schema, the given profile schemas and
 the file rules. Findings print one per line as <file>:<line>: <error|note>: <message>.
+--declared-profiles also fetches every https URL of profileSchemas in the run.started of
+each file (no network access without it); a --profile schema with the same $id replaces the fetch.
 Exit code: 0 when no error (notes allowed), 1 on errors or bad usage.`
 
 type Io = { out: (s: string) => void; err: (s: string) => void; stdin: () => string }
@@ -40,6 +42,7 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
   }
   const targets: string[] = []
   const profileSources: string[] = []
+  let declared = false
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i] as string
     if (a === '--profile') {
@@ -49,7 +52,8 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
         return 1
       }
       profileSources.push(value)
-    } else targets.push(a)
+    } else if (a === '--declared-profiles') declared = true
+    else targets.push(a)
   }
   if (targets.length === 0) {
     io.err(USAGE)
@@ -67,6 +71,10 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
     io.err(`no file matches ${targets.join(' ')}`)
     return 1
   }
+  const givenIds = new Set(
+    profiles.map((p) => (p as { $id?: unknown }).$id).filter((x) => typeof x === 'string'),
+  )
+  const cache = new Map<string, Promise<object>>()
   let failed = false
   for (const file of files) {
     let text: string
@@ -77,7 +85,32 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
       failed = true
       continue
     }
-    const findings = checkRun(text, profiles)
+    const fileProfiles = [...profiles]
+    if (declared) {
+      const urls = new Set(Object.values(declaredSchemas(text)))
+      for (const url of urls) {
+        if (givenIds.has(url)) continue
+        if (!/^https:\/\//.test(url)) {
+          io.err(`profile: ${url}: not an https URL`)
+          failed = true
+          continue
+        }
+        try {
+          let schema = cache.get(url)
+          if (!schema) {
+            schema = loadProfile(url)
+            cache.set(url, schema)
+          }
+          const loaded = await schema
+          compileSchemas([loaded]) // throws on a schema that is not a valid JSON Schema
+          fileProfiles.push(loaded)
+        } catch (e) {
+          io.err(`profile: ${url}: ${(e as Error).message.replace(`${url}: `, '')}`)
+          failed = true
+        }
+      }
+    }
+    const findings = checkRun(text, fileProfiles)
     for (const f of findings)
       io.out(`${file === '-' ? '<stdin>' : file}:${f.line}: ${f.level}: ${f.message}`)
     if (hasErrors(findings)) failed = true
