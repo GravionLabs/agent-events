@@ -47,7 +47,7 @@ r1.jsonl:9: note: incomplete last line skipped
       examples/profiles/example/example.schema.json
 ```
 
-Inputs: `files` (file or glob), `profiles` (one path or URL per line), `version` (npm version of `agent-events`, default `latest`).
+Inputs: `files` (file or glob), `profiles` (one path or URL per line), `version` (npm version of `agent-events`; default: the CLI of the Action's own ref, built from its checkout, so `@v0` runs the code of `v0`; set it to an npm version once the package is published).
 
 ## Install
 
