@@ -16,12 +16,14 @@ describe('supported Node floor is aligned (#10)', () => {
   it('README names the floor', () => {
     assert.match(read('README.md'), new RegExp(`Node\\.js ${FLOOR} or newer`))
   })
-  for (const f of [
-    '.github/workflows/ci.yml',
-    '.github/workflows/pages.yml',
-    '.github/workflows/release.yml',
-    'action.yml',
-  ]) {
+  it('.nvmrc pins the floor, which the reusable Pages workflow reads', () => {
+    assert.equal(read('.nvmrc').trim(), String(FLOOR))
+    assert.match(
+      read('.github/workflows/pages.yml'),
+      /uses: GravionLabs\/ci\/\.github\/workflows\/vitepress-pages\.yml@v1/,
+    )
+  })
+  for (const f of ['.github/workflows/ci.yml', '.github/workflows/release.yml', 'action.yml']) {
     it(`${f} uses node-version ${FLOOR}`, () => {
       const versions = [...read(f).matchAll(/node-version:\s*"?([^"\s]+)"?/g)].map((m) => m[1])
       assert.ok(versions.length > 0)
