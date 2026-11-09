@@ -50,7 +50,7 @@
         "kind": { "type": "string" },
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "url": { "type": "string" }
+        "url": { "type": "string", "format": "uri", "pattern": "^https?://" }
       }
     },
     "links": {
@@ -58,7 +58,7 @@
       "items": {
         "type": "object",
         "required": ["rel", "url"],
-        "properties": { "rel": { "type": "string" }, "url": { "type": "string" }, "title": { "type": "string" } }
+        "properties": { "rel": { "type": "string" }, "url": { "type": "string", "format": "uri", "pattern": "^https?://" }, "title": { "type": "string" } }
       }
     },
     "progress": {

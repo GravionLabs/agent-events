@@ -124,3 +124,4 @@ A display MUST be able to show a run from the core alone; a profile is never req
 - A line MUST NOT exceed 16384 bytes (UTF-8, without the newline). A reader MAY reject a longer line.
 - `run` matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`: no path separators, no leading dot, no spaces, so bindings can use it as a name.
 - Readers treat all text as untrusted: no markup rendering, no execution, URLs opened only by explicit user action.
+- `subject.url` and `links[].url` MUST match `^https?://`; writers MUST NOT emit other schemes. Readers MUST NOT open URLs with other schemes (`javascript:`, `file:`, `data:`).
