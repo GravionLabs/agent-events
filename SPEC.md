@@ -50,7 +50,7 @@ An `attention` is open until `attention.resolved` with its `id`, `task.finished`
 
 ## Run state
 
-Schema: [`schema/v0/run-state.schema.json`](schema/v0/run-state.schema.json). The state is the fold of the events in order, computed by the reader. Fixtures `fixtures/state/<case>.jsonl` with the expected `<case>.state.json` are the contract; every reader, in any language, MUST produce the same state. `test/fold.ts` is the reference fold. Profiles extend the state under an object of their name.
+Schema: [`schema/v0/run-state.schema.json`](schema/v0/run-state.schema.json). The state is the fold of the events in order, computed by the reader. Fixtures `fixtures/state/<case>.jsonl` with the expected `<case>.state.json` are the contract; every reader, in any language, MUST produce the same state. `src/fold.ts` is the reference fold, exported by the package as `fold()` and printed by `agent-events state`. Profiles extend the state under an object of their name.
 
 | State field | From |
 | :-- | :-- |

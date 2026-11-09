@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { globSync, readFileSync } from 'node:fs'
 import { checkRun, compileSchemas, declaredSchemas, hasErrors } from './check.ts'
+import { fold } from './fold.ts'
 
 const USAGE = `Usage: agent-events validate <file|glob|-> [more files] [--profile <path|url>]... [--declared-profiles]
 
@@ -8,7 +9,12 @@ Checks run files (JSON Lines) against the core schema, the given profile schemas
 the file rules. Findings print one per line as <file>:<line>: <error|note>: <message>.
 --declared-profiles also fetches every https URL of profileSchemas in the run.started of
 each file (no network access without it); a --profile schema with the same $id replaces the fetch.
-Exit code: 0 when no error (notes allowed), 1 on errors or bad usage.`
+Exit code: 0 when no error (notes allowed), 1 on errors or bad usage.
+
+Usage: agent-events state <file|-> [--now <ts>]
+
+Prints the run state (the reference fold of SPEC.md "Run state") of a run file as JSON.
+--now <ts> (RFC 3339) is the reader's clock for the abandoned status; default: the current time.`
 
 type Io = { out: (s: string) => void; err: (s: string) => void; stdin: () => string }
 
@@ -29,6 +35,40 @@ async function loadProfile(source: string): Promise<object> {
 
 const isGlob = (s: string) => /[*?[\]{}]/.test(s)
 
+function state(args: string[], io: Io): number {
+  let target: string | undefined
+  let now = new Date()
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] as string
+    if (a === '--now') {
+      const value = args[++i]
+      const parsed = value === undefined ? new Date(Number.NaN) : new Date(value)
+      if (Number.isNaN(parsed.getTime())) {
+        io.err('--now needs an RFC 3339 timestamp')
+        return 1
+      }
+      now = parsed
+    } else if (target === undefined) target = a
+    else {
+      io.err(USAGE)
+      return 1
+    }
+  }
+  if (target === undefined) {
+    io.err(USAGE)
+    return 1
+  }
+  let text: string
+  try {
+    text = target === '-' ? io.stdin() : readFileSync(target, 'utf8')
+  } catch (e) {
+    io.err(`${target}: ${(e as Error).message}`)
+    return 1
+  }
+  io.out(JSON.stringify(fold(text, now), null, 2))
+  return 0
+}
+
 // Runs the CLI; returns the exit code.
 export async function main(argv: string[], io: Io = defaultIo): Promise<number> {
   const [command, ...rest] = argv
@@ -36,6 +76,7 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
     io.out(USAGE)
     return 0
   }
+  if (command === 'state') return state(rest, io)
   if (command !== 'validate') {
     io.err(USAGE)
     return 1

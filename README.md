@@ -37,6 +37,26 @@ r1.jsonl:3: error: seq 5, expected 3
 r1.jsonl:9: note: incomplete last line skipped
 ```
 
+## Fold a run file into its state
+
+```sh
+npx agent-events state r1.jsonl                          # the run state as JSON
+cat r1.jsonl | npx agent-events state -                  # stdin
+npx agent-events state r1.jsonl --now 2026-11-08T12:00:00Z   # the clock for the abandoned status
+```
+
+`state` prints the reference fold of [SPEC.md](SPEC.md) "Run state". `--now <ts>` (RFC 3339) is the reader's clock: a running run whose last event is more than an hour older is `abandoned`; the default is the current time. Readers in any language compare their own fold with this output.
+
+TypeScript readers import the same fold:
+
+```ts
+import { fold, type RunState } from 'agent-events'
+
+const state: RunState = fold(text, new Date())
+```
+
+`fold(text, now)` takes the file text and the reader's clock; `ABANDONED_AFTER_MS` and the `Link` type are exported too.
+
 ### GitHub Action
 
 ```yaml

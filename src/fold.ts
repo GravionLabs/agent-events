@@ -5,9 +5,11 @@ export const ABANDONED_AFTER_MS = 60 * 60 * 1000
 
 // biome-ignore lint/suspicious/noExplicitAny: events are untrusted JSON, read defensively
 type Json = Record<string, any>
-type Link = { rel: string; url: string; title?: string }
+export type Link = { rel: string; url: string; title?: string }
 
-export function foldRun(text: string, now: Date): Json {
+export type RunState = Json
+
+export function fold(text: string, now: Date): RunState {
   const lines = text.split('\n')
   if (!text.endsWith('\n')) lines.pop() // incomplete last line
   const tasks = new Map<string, Json>()

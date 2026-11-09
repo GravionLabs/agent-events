@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { afterEach, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { checkRun, hasErrors } from '../src/check.ts'
@@ -211,5 +211,43 @@ describe('cli', () => {
     })
     assert.equal(bad.status, 1)
     assert.match(execFileSync('node', [bin, '--help']).toString(), /Usage: agent-events validate/)
+  })
+})
+
+describe('state command', () => {
+  const dir = path('fixtures/state')
+  const cases = readdirSync(dir)
+    .filter((f) => f.endsWith('.jsonl'))
+    .map((f) => f.slice(0, -'.jsonl'.length))
+  for (const c of cases) {
+    it(`prints the state of ${c}`, async () => {
+      const nowFile = `fixtures/state/${c}.now`
+      const now = existsSync(path(nowFile)) ? read(nowFile).trim() : '2026-11-08T10:30:00.000Z'
+      const r = await run(['state', path(`fixtures/state/${c}.jsonl`), '--now', now])
+      assert.equal(r.code, 0)
+      assert.deepEqual(
+        JSON.parse(r.out.join('\n')),
+        JSON.parse(read(`fixtures/state/${c}.state.json`)),
+      )
+    })
+  }
+
+  it('reads stdin with -', async () => {
+    const r = await run(['state', '-', '--now', '2026-11-08T10:00:30.000Z'], started)
+    assert.equal(r.code, 0)
+    assert.equal(JSON.parse(r.out.join('\n')).status, 'running')
+  })
+
+  it('marks an old run abandoned with a late --now', async () => {
+    const r = await run(['state', '-', '--now', '2026-11-08T12:00:00.000Z'], started)
+    assert.equal(JSON.parse(r.out.join('\n')).status, 'abandoned')
+  })
+
+  it('fails on a missing file, a bad --now and a missing argument', async () => {
+    assert.equal((await run(['state', '/no/such/file.jsonl'])).code, 1)
+    const bad = await run(['state', '-', '--now', 'yesterday'], started)
+    assert.equal(bad.code, 1)
+    assert.match(bad.err[0] as string, /--now/)
+    assert.equal((await run(['state'])).code, 1)
   })
 })
