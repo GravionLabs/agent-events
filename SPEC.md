@@ -73,8 +73,11 @@ Folding rules:
 - An attention is resolved by `attention.resolved` with its `id`, by `task.finished` of its `task`, or by `run.finished` (all). A repeated `attention` for an open id and an unknown `attention.resolved` are ignored.
 - Events with `seq` not above the last folded one are ignored. A jump in `seq` is not an error for a reader: the missing range is added to `gaps` and the later events are folded anyway.
 - Lines that are not JSON are skipped. Unknown types (profile types too) and unknown fields are ignored, but their `seq` counts.
+- `run.finished` moves every open task to `finished.cancelled` with `reason` `run finished`, in start order, after the tasks already finished; the task keeps `parent` and `subject` and loses `step` and `progress`. `tasks` is then empty.
 - Nothing folds after `run.finished`.
 - `abandoned` is decided by the reader: no `run.finished` and the last event older than one hour at the reader's clock (the [`jsonl-file` binding](bindings/jsonl-file.md) adds a writer `pid` that is gone). Fixtures fix the clock in `<case>.now`, default `2026-11-08T10:30:00.000Z`.
+
+Writers SHOULD finish every task (`task.finished`) before `run.finished`, so the real outcome of each task is recorded; the fold only cancels what is left open. A validator may note open tasks at `run.finished`; the core validator does not report them as errors.
 
 ## Host
 
