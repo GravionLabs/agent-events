@@ -14,6 +14,7 @@
     "text": { "type": "string" },
     "subject": { "$ref": "#/$defs/subject", "description": "subject of run.started" },
     "progress": { "$ref": "#/$defs/progress", "description": "latest progress without task: progress of the run subject" },
+    "step": { "$ref": "#/$defs/step", "description": "last step.started or step.finished without task: step of the run" },
     "tasks": { "type": "array", "description": "open tasks in start order", "items": { "$ref": "#/$defs/openTask" } },
     "finished": {
       "type": "object",

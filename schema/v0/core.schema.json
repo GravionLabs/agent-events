@@ -51,11 +51,11 @@
         } } },
     { "if": { "properties": { "type": { "const": "step.started" } }, "required": ["type"] },
       "then": {
-        "required": ["task", "step"],
+        "required": ["step"],
         "properties": { "task": { "$ref": "#/$defs/id" }, "step": { "$ref": "#/$defs/step" } } } },
     { "if": { "properties": { "type": { "const": "step.finished" } }, "required": ["type"] },
       "then": {
-        "required": ["task", "step"],
+        "required": ["step"],
         "properties": {
           "task": { "$ref": "#/$defs/id" },
           "step": { "$ref": "#/$defs/step" },
