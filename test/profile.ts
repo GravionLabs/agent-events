@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import AjvModule from 'ajv/dist/2020.js'
 import formatsModule from 'ajv-formats'
-import { foldRun } from './fold.ts'
+import { fold } from '../src/fold.ts'
 import { checkRunFile } from './validate.ts'
 
 const Ajv2020 = AjvModule as unknown as typeof AjvModule.default
@@ -34,7 +34,7 @@ describe('example profile', () => {
   })
   it('folds to the expected core state', () => {
     const expected = JSON.parse(read(`${dir}/review.state.json`))
-    assert.deepEqual(foldRun(run, new Date('2026-11-08T10:30:00.000Z')), expected)
+    assert.deepEqual(fold(run, new Date('2026-11-08T10:30:00.000Z')), expected)
   })
   it('rejects a review event without its fields', () => {
     const bad = { ...events()[3], example: { round: 1 } }
