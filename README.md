@@ -67,7 +67,7 @@ npm install && npm test   # validates all fixtures against the core schema
 
 ## Development
 
-Toolchain: Node.js 26 or newer (runs TypeScript directly in tests), TypeScript (type check, and `npm run build` compiles `src/` to `dist/` for the npm package, because Node does not strip types under `node_modules`), Biome (lint and format) and `node:test` with `node:assert`.
+The package runs on Node.js 22 or newer (compiled `dist/`). Toolchain: Node.js 26 or newer (runs TypeScript directly in tests), TypeScript (type check, and `npm run build` compiles `src/` to `dist/` for the npm package, because Node does not strip types under `node_modules`), Biome (lint and format) and `node:test` with `node:assert`.
 
 ```sh
 npm run build       # tsc: src/ to dist/
