@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { globSync, readFileSync } from 'node:fs'
-import { checkRun, declaredSchemas, hasErrors } from './check.ts'
+import { checkRun, compileSchemas, declaredSchemas, hasErrors } from './check.ts'
 
 const USAGE = `Usage: agent-events validate <file|glob|-> [more files] [--profile <path|url>]... [--declared-profiles]
 
@@ -90,13 +90,20 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
       const urls = new Set(Object.values(declaredSchemas(text)))
       for (const url of urls) {
         if (givenIds.has(url)) continue
+        if (!/^https:\/\//.test(url)) {
+          io.err(`profile: ${url}: not an https URL`)
+          failed = true
+          continue
+        }
         try {
           let schema = cache.get(url)
           if (!schema) {
             schema = loadProfile(url)
             cache.set(url, schema)
           }
-          fileProfiles.push(await schema)
+          const loaded = await schema
+          compileSchemas([loaded]) // throws on a schema that is not a valid JSON Schema
+          fileProfiles.push(loaded)
         } catch (e) {
           io.err(`profile: ${url}: ${(e as Error).message.replace(`${url}: `, '')}`)
           failed = true

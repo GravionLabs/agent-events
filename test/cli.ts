@@ -156,6 +156,23 @@ describe('declared profiles', () => {
     assert.equal(code, 1)
     assert.equal(err[0], `profile: ${url}: HTTP 404`)
   })
+  it('rejects a declared local path or http URL without reading or fetching', async () => {
+    const calls = stub(exampleSchema)
+    for (const value of ['/etc/hostname', 'http://example.invalid/x.schema.json']) {
+      const text = started.replace(
+        '"profiles":[]',
+        `"profiles":[],"profileSchemas":{"a@1":"${value}"}`,
+      )
+      const { code, err } = await run(['validate', '-', '--declared-profiles'], text)
+      assert.deepEqual([code, err, calls], [1, [`profile: ${value}: not an https URL`], []])
+    }
+  })
+  it('reports a fetched schema that is not a valid JSON Schema', async () => {
+    stub(() => Response.json({ type: 'nonsense' }))
+    const { code, err } = await run(['validate', review, '--declared-profiles'])
+    assert.equal(code, 1)
+    assert.match(err[0] ?? '', new RegExp(`^profile: ${url}: .+`))
+  })
   it('does nothing for a file without profileSchemas', async () => {
     const calls = stub(exampleSchema)
     const { code } = await run(['validate', '-', '--declared-profiles'], started)
