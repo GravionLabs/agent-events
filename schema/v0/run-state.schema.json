@@ -49,7 +49,7 @@
       "properties": {
         "kind": { "type": "string" },
         "id": { "type": "string" },
-        "title": { "type": "string" },
+        "title": { "type": "string", "minLength": 1 },
         "url": { "type": "string", "format": "uri", "pattern": "^https?://" }
       }
     },

@@ -24,6 +24,8 @@ export function compileSchemas(profiles: object[] = []): ValidateFunction[] {
 }
 
 type Event = {
+  done?: unknown
+  total?: unknown
   seq: number
   run: string
   type: string
@@ -95,6 +97,8 @@ export function checkRun(text: string, profiles: object[] = []): Finding[] {
             message: `profileSchemas key ${key} is not in profiles`,
           })
     }
+    if (obj.type === 'progress' && Number(obj.done) > Number(obj.total))
+      error(n, `progress done ${obj.done} is above total ${obj.total}`)
     if (isFirst && obj.type !== 'run.started')
       error(n, `first event is ${obj.type}, expected run.started`)
     if (!isFirst && obj.type === 'run.started') error(n, 'run.started is not the first event')

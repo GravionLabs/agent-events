@@ -66,3 +66,22 @@ describe('profileSchemas', () => {
     })
   }
 })
+
+describe('progress and subject title', () => {
+  const start =
+    '{"v":1,"seq":1,"ts":"2026-11-08T10:00:00.000Z","run":"r1","type":"run.started","tone":"neutral","profiles":[],"host":{}}\n'
+  const progress = (done: number, total: number) =>
+    `{"v":1,"seq":2,"ts":"2026-11-08T10:00:01.000Z","run":"r1","type":"progress","tone":"neutral","done":${done},"total":${total}}\n`
+  it('accepts done equal to total', () => assert.deepEqual(checkRun(start + progress(2, 2)), []))
+  it('accepts done 0 of total 0', () => assert.deepEqual(checkRun(start + progress(0, 0)), []))
+  it('rejects done above total', () =>
+    assert.deepEqual(checkRun(start + progress(3, 2)), [
+      { line: 2, level: 'error', message: 'progress done 3 is above total 2' },
+    ]))
+  it('rejects an empty subject title', () => {
+    const f = checkRun(
+      start.replace('"host":{}', '"host":{},"subject":{"kind":"issue","id":"1","title":""}'),
+    )
+    assert.match(f.map((x) => x.message).join(), /title/)
+  })
+})
