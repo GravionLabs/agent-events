@@ -1,6 +1,6 @@
 # ADR 0001: A general core with profiles and bindings
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-08
 - Related: GravionLabs/skills ADR 0001 and ADR 0002, GravionLabs/skills#450
 
