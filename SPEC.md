@@ -28,7 +28,7 @@ Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event 
 | `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` (code), optional `text` |
 | `step.started` | optional `task`, `step` (`name`, optional `n`, `total`, `text`) |
 | `step.finished` | optional `task`, `step`, optional `links` |
-| `progress` | optional `task`, `done`, `total`, optional `label` |
+| `progress` | optional `task`, `done`, `total` (`done` MUST NOT exceed `total`), optional `label` |
 | `attention` | `id`, optional `task`, `reason` (code), optional `text`, `needsYou`, optional `links` |
 | `attention.resolved` | `id` |
 
@@ -38,7 +38,7 @@ Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event 
 
 ## Subject and links
 
-`subject` is `{kind, id, title, url}` (`url` optional). `kind` is free; conventional values are in [docs/subject-kinds.md](docs/subject-kinds.md), unknown kinds stay valid and are shown generically. `run.started` may carry a `subject` for the run as a whole (a milestone, a release); `progress` without `task` is the progress of that subject. `links` is a list of `{rel, url, title}` (`title` optional, `rel` free, for example `pull-request`, `log`).
+`subject` is `{kind, id, title, url}` (`url` optional; `title` MUST NOT be empty). `kind` is free; conventional values are in [docs/subject-kinds.md](docs/subject-kinds.md), unknown kinds stay valid and are shown generically. `run.started` may carry a `subject` for the run as a whole (a milestone, a release); `progress` without `task` is the progress of that subject. `links` is a list of `{rel, url, title}` (`title` optional, `rel` free, for example `pull-request`, `log`).
 
 ## Tasks
 
