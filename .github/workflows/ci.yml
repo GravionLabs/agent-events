@@ -34,6 +34,12 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: node dist/cli.js validate "fixtures/events/valid/*.jsonl"
+      # an invalid fixture must fail; guards against the CLI silently skipping main() (#63)
+      - run: |
+          set +e
+          node dist/cli.js validate fixtures/events/invalid/bad-tone.jsonl
+          code=$?
+          test "$code" -eq 1
   action:
     runs-on: ubuntu-latest
     steps:
