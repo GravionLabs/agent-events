@@ -16,6 +16,24 @@ describe('release workflow takes the version from the commits (#72)', () => {
   it('checks out the full history so determine-version sees the tags', () => {
     assert.match(y, /fetch-depth: 0/)
   })
+  it('passes the repository GitVersion.yml and switches the conventional-commits config off', () => {
+    assert.match(y, /conventional-commits: 'false'/)
+    assert.match(y, /gitversion-config-file: GitVersion\.yml/)
+  })
+  it('GitVersion.yml raises the minor version, not the major, for ! and BREAKING CHANGE', () => {
+    const g = read('GitVersion.yml')
+    const rule = (k: string) => new RegExp(g.match(new RegExp(`^${k}: '(.*)'$`, 'm'))![1], 'm')
+    const major = rule('major-version-bump-message')
+    const minor = rule('minor-version-bump-message')
+    const breaking = 'feat(spec)!: separate reason code\n\nbody\n\nBREAKING CHANGE: x\n'
+    assert.equal(major.test(breaking), false)
+    assert.equal(major.test('fix: x\n\n+semver: major'), true)
+    assert.equal(minor.test(breaking), true)
+    assert.equal(minor.test('chore!: drop'), true)
+    assert.equal(minor.test('feat: add'), true)
+    assert.equal(minor.test('docs: words'), false)
+    assert.equal(rule('patch-version-bump-message').test('fix(x): y'), true)
+  })
   it('runs the tests before the version is determined', () => {
     assert.ok(y.indexOf('run: npm test') < y.indexOf('determine-version@v1'))
   })

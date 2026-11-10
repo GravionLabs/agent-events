@@ -22,6 +22,10 @@ jobs:
       - name: Determine the version from the conventional commits
         id: version
         uses: GravionLabs/ci/versioning/determine-version@v1
+        with:
+          # below 1.0 the repository's own GitVersion.yml applies: breaking changes raise the minor version
+          conventional-commits: 'false'
+          gitversion-config-file: GitVersion.yml
       # Writes the version into package.json and package-lock.json and regenerates CHANGELOG.md
       # in one [skip ci] commit on main, tags that commit and creates the release (skipped when it
       # exists, so a re-run is safe). close-issues stays on: the job has issues: write and

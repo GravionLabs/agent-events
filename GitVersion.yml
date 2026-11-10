@@ -1,0 +1,8 @@
+# below 1.0: breaking changes raise the minor version; remove this override at 1.0
+# Passed to GravionLabs/ci determine-version (conventional-commits: 'false'). Same rules as its
+# conventional-commits config, except that "type!:" and "BREAKING CHANGE:" raise the minor version.
+# "+semver: major" stays as the deliberate escape hatch for 1.0. The branch layout (main stable,
+# release/next) is the GitVersion default, as with conventional-commits true.
+major-version-bump-message: '\+semver:\s?(breaking|major)'
+minor-version-bump-message: '\+semver:\s?(feature|minor)|^(feat)(\([^)\n]+\))?:|^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^)\n]+\))?(!:|:.*\n\n((.+\n)+\n)?BREAKING[ -]CHANGE:\s.+)'
+patch-version-bump-message: '\+semver:\s?(fix|patch)|^(fix|perf|revert)(\([^)\n]+\))?:'
