@@ -12,6 +12,7 @@ export const pageRoutes: Record<string, string> = {
   'docs/profiles.md': '/docs/profiles',
   'docs/subject-kinds.md': '/docs/subject-kinds',
   'bindings/jsonl-file.md': '/bindings/jsonl-file',
+  'bindings/mcp.md': '/bindings/mcp',
 }
 
 /** The pages mirror the repository layout, so a page path is the repository path of the file it includes. */
