@@ -39,15 +39,22 @@ Claude Code runs a command per hook event and passes a JSON object, with the `se
 ```sh
 # ae-hook.sh
 . "$(dirname "$0")/writer.sh"
-AE_RUN=$(sed -n 's/.*"session_id" *: *"\([^"]*\)".*/\1/p' | head -n 1)
-[ -n "$AE_RUN" ] || exit 0
+SID=$(sed -n 's/.*"session_id" *: *"\([^"]*\)".*/\1/p' | head -n 1)
+[ -n "$SID" ] || exit 0
+ae_dir="${AGENT_EVENTS_DIR:-$(git rev-parse --path-format=absolute --git-common-dir)/.agents/events}"
+# The current run of the session is the latest of <session_id>, <session_id>-2, <session_id>-3 ...
+n=1; AE_RUN=$SID
+while [ -e "$ae_dir/$SID-$((n + 1)).jsonl" ]; do n=$((n + 1)); AE_RUN=$SID-$n; done
+finished=; tail -n 1 "$ae_dir/$AE_RUN.jsonl" 2>/dev/null | grep -q '"type":"run.finished"' && finished=1
 case "$1" in
-  start) # SessionStart also fires for resume, clear and compact with the same session_id
-    ae_dir="${AGENT_EVENTS_DIR:-$(git rev-parse --path-format=absolute --git-common-dir)/.agents/events}"
-    [ -e "$ae_dir/$AE_RUN.jsonl" ] && exit 0
+  start) # SessionStart also fires for resume, clear and compact
+    if [ -e "$ae_dir/$AE_RUN.jsonl" ]; then
+      [ -n "$finished" ] || exit 0 # still running: compact, or resume of a run that never ended
+      AE_RUN=$SID-$((n + 1)) # resume after SessionEnd: a new run
+    fi
     ae_emit run.started neutral '"profiles":[],"host":{},"agent":{"harness":"claude-code"}' ;;
-  attention) ae_emit attention warning "\"id\":\"n$(date +%s)\",\"reason\":\"notification\",\"needsYou\":true" ;;
-  end) ae_emit run.finished neutral '"outcome":"succeeded"' ;;
+  attention) [ -n "$finished" ] || ae_emit attention warning "\"id\":\"n$(date +%s)\",\"reason\":\"notification\",\"needsYou\":true" ;;
+  end) [ -n "$finished" ] || ae_emit run.finished neutral '"outcome":"succeeded"' ;;
 esac
 ```
 
@@ -61,7 +68,11 @@ esac
 }
 ```
 
-Claude Code also fires `SessionStart` for the `resume`, `clear` and `compact` sources with the same `session_id`, and a run has exactly one `run.started`. The `start` step therefore does nothing when the run file already exists. You can narrow the hook as well with `"matcher": "startup"` on `SessionStart`, but the file check is the guard that holds either way.
+Claude Code fires `SessionStart` for the `startup`, `resume`, `clear` and `compact` sources. `resume` and `compact` keep the `session_id`; `/clear` starts a new `session_id` (and ends the old session with a `SessionEnd` of reason `clear`). A run has exactly one `run.started` and nothing counts after `run.finished` ([SPEC.md](../SPEC.md#run-state)), so the hook picks the run per event:
+
+- `start` does nothing while the current run file has not finished (compact, or a resume of a session that never ended).
+- `start` after the current run has `run.finished` (a session resumed after `SessionEnd`) begins a new run, `<session_id>-2`, then `-3`, and so on. Each file counts its own `seq`.
+- `attention` and `end` go to the current run, and are skipped once it has finished.
 
 The hook reports that the session needs attention, not what was said. A session that is closed with Ctrl+C may never reach `SessionEnd`: the run then turns `abandoned` after an hour, which is the intended outcome.
 

@@ -93,6 +93,35 @@ describe('getting-started writers produce valid runs', () => {
     assert.equal(v.status, 0, v.stdout + v.stderr)
   })
 
+  it('a session resumed after SessionEnd starts a new run that folds and validates', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
+    writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
+    writeFileSync(join(dir, 'ae-hook.sh'), block(guide, 'ae-hook.sh'))
+    const stdin = '{"session_id":"7f3c-sess","hook_event_name":"x"}'
+    for (const step of ['start', 'end', 'start', 'attention']) {
+      const r = sh(`sh "${dir}/ae-hook.sh" ${step}`, { AGENT_EVENTS_DIR: dir }, stdin)
+      assert.equal(r.status, 0, r.stderr)
+    }
+    const types = (f: string) =>
+      readFileSync(join(dir, f), 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l).type)
+    assert.deepEqual(types('7f3c-sess.jsonl'), ['run.started', 'run.finished'])
+    assert.deepEqual(types('7f3c-sess-2.jsonl'), ['run.started', 'attention'])
+    for (const f of ['7f3c-sess.jsonl', '7f3c-sess-2.jsonl']) {
+      const v = validate(join(dir, f))
+      assert.equal(v.status, 0, v.stdout + v.stderr)
+    }
+    const st = spawnSync(process.execPath, [cli, 'state', join(dir, '7f3c-sess-2.jsonl')], {
+      encoding: 'utf8',
+    })
+    const state = JSON.parse(st.stdout)
+    assert.equal(state.run, '7f3c-sess-2')
+    assert.equal(state.status, 'running')
+    assert.equal(JSON.stringify(state).includes('notification'), true)
+  })
+
   it('the hook does nothing without a session id', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
     writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
