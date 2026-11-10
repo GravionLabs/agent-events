@@ -108,6 +108,14 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
     io.err(`profile: ${(e as Error).message}`)
     return 1
   }
+  for (let i = 0; i < profiles.length; i++) {
+    try {
+      compileSchemas(profiles.slice(0, i + 1)) // duplicate $id, unresolvable $ref, invalid schema
+    } catch (e) {
+      io.err(`${profileSources[i]}: error: ${(e as Error).message}`)
+      return 1
+    }
+  }
   const files = targets.flatMap((t) => (t !== '-' && isGlob(t) ? globSync(t).sort() : [t]))
   if (files.length === 0) {
     io.err(`no file matches ${targets.join(' ')}`)
@@ -144,7 +152,7 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
             cache.set(url, schema)
           }
           const loaded = await schema
-          compileSchemas([loaded]) // throws on a schema that is not a valid JSON Schema
+          compileSchemas([...fileProfiles, loaded]) // throws on an invalid schema or a duplicate $id
           fileProfiles.push(loaded)
         } catch (e) {
           io.err(`profile: ${url}: ${(e as Error).message.replace(`${url}: `, '')}`)

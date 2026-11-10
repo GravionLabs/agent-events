@@ -36,7 +36,7 @@ npx agent-events validate r1.jsonl --profile examples/profiles/example/example.s
 npx agent-events validate r1.jsonl --profile https://example.org/profiles/deliver/v1/deliver.schema.json
 ```
 
-`--profile <path|url>` is repeatable; each profile schema is applied to every line in addition to the core schema. Findings print one per line as `<file>:<line>: <error|note>: <message>`; the exit code is 0 when there is no error (notes are fine) and 1 otherwise. Checks: the core schema (and profiles) per line, `seq` gapless from 1, one `run` per file, `run.started` first and only once, lines up to 16384 bytes. An incomplete last line (no newline yet) is reported as a note, not an error.
+`--profile <path|url>` is repeatable; A profile that cannot be compiled (an `$id` already in use, an unresolvable `$ref`, an invalid schema) prints `<profile>: error: <message>` and exits 1. each profile schema is applied to every line in addition to the core schema. Findings print one per line as `<file>:<line>: <error|note>: <message>`; the exit code is 0 when there is no error (notes are fine) and 1 otherwise. Checks: the core schema (and profiles) per line, `seq` gapless from 1, one `run` per file, `run.started` first and only once, lines up to 16384 bytes. An incomplete last line (no newline yet) is reported as a note, not an error.
 
 ```text
 r1.jsonl:3: error: seq 5, expected 3
