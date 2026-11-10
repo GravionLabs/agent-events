@@ -1,37 +1,46 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import { checkVersion } from '../src/release-notes.ts'
 
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')
-const log =
-  '# Changelog\n\n## [0.2.0] — 2026-01-02\n\n### Features\n- two\n\n## [0.1.0] — 2026-01-01\n\n- one\n'
-const pkg = (v: string) => JSON.stringify({ version: v })
+const y = read('.github/workflows/release.yml')
 
-describe('release version check and workflow (#32)', () => {
-  it('accepts a package version with a generated changelog section', () => {
-    assert.equal(checkVersion(pkg('0.2.0'), log), 'v0.2.0')
-  })
-  it('fails when package.json and the changelog differ', () => {
-    assert.throws(() => checkVersion(pkg('0.3.0'), log), /no section "## v0\.3\.0"/)
-  })
-  it('fails on a version that is not x.y.z', () => {
-    assert.throws(() => checkVersion(pkg('1.0'), log), /not x\.y\.z/)
-  })
-  it('the real package.json matches the real CHANGELOG.md', () => {
-    assert.match(checkVersion(read('package.json'), read('CHANGELOG.md')), /^v\d+\.\d+\.\d+$/)
-  })
-  it('dry run: the --check step prints the tag and exits 0 in this repo', () => {
-    const out = execFileSync('node', ['src/release-notes.ts', '--check'], { encoding: 'utf8' })
-    assert.equal(out.trim(), `v${JSON.parse(read('package.json')).version}`)
-  })
-  it('release.yml runs on push to main, creates tag via release, no tag trigger', () => {
-    const y = read('.github/workflows/release.yml')
+describe('release workflow takes the version from the commits (#72)', () => {
+  it('runs on push to main, no tag trigger, with write permissions', () => {
     assert.match(y, /branches: \[main\]/)
     assert.doesNotMatch(y, /tags:/)
-    assert.match(y, /--target "\$GITHUB_SHA"/)
-    assert.match(y, /schema\/v0\/\*\.json/)
-    assert.match(y, /--notes-file/)
+    assert.match(y, /contents: write/)
+    assert.match(y, /issues: write/)
+    assert.match(y, /pull-requests: read/)
+  })
+  it('checks out the full history so determine-version sees the tags', () => {
+    assert.match(y, /fetch-depth: 0/)
+  })
+  it('runs the tests before the version is determined', () => {
+    assert.ok(y.indexOf('run: npm test') < y.indexOf('determine-version@v1'))
+  })
+  it('determines the version and releases with GravionLabs/ci at @v1', () => {
+    assert.match(y, /GravionLabs\/ci\/versioning\/determine-version@v1/)
+    assert.match(y, /GravionLabs\/ci\/versioning\/gh-release@v1/)
+    assert.doesNotMatch(y, /GravionLabs\/ci\/[^\s@]+@(main|[0-9a-f]{40})/)
+  })
+  it('writes the version into package files and regenerates the changelog in the release commit', () => {
+    assert.match(
+      y,
+      /version-command: npm version "\$VERSION" --no-git-tag-version --allow-same-version/,
+    )
+    assert.match(y, /cliff-config: cliff\.toml/)
+    assert.match(y, /update-changelog: "true"/)
+    assert.match(y, /recreate-branch: release\/next/)
+  })
+  it('uploads the schemas and the tarball idempotently from the tagged commit', () => {
+    assert.match(y, /git checkout --detach "refs\/tags\/\$TAG"/)
+    assert.match(y, /gh release upload "\$TAG" --clobber schema\/v0\/\*\.json/)
+    assert.match(y, /npm pack/)
+  })
+  it('does not use the removed manual version check or hand-made release', () => {
+    assert.doesNotMatch(y, /release-notes/)
+    assert.doesNotMatch(y, /gh release create/)
+    assert.equal(existsSync(new URL('../src/release-notes.ts', import.meta.url)), false)
   })
 })
