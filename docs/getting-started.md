@@ -42,7 +42,10 @@ Claude Code runs a command per hook event and passes a JSON object, with the `se
 AE_RUN=$(sed -n 's/.*"session_id" *: *"\([^"]*\)".*/\1/p' | head -n 1)
 [ -n "$AE_RUN" ] || exit 0
 case "$1" in
-  start) ae_emit run.started neutral '"profiles":[],"host":{},"agent":{"harness":"claude-code"}' ;;
+  start) # SessionStart also fires for resume, clear and compact with the same session_id
+    ae_dir="${AGENT_EVENTS_DIR:-$(git rev-parse --path-format=absolute --git-common-dir)/.agents/events}"
+    [ -e "$ae_dir/$AE_RUN.jsonl" ] && exit 0
+    ae_emit run.started neutral '"profiles":[],"host":{},"agent":{"harness":"claude-code"}' ;;
   attention) ae_emit attention warning "\"id\":\"n$(date +%s)\",\"reason\":\"notification\",\"needsYou\":true" ;;
   end) ae_emit run.finished neutral '"outcome":"succeeded"' ;;
 esac
@@ -57,6 +60,8 @@ esac
   }
 }
 ```
+
+Claude Code also fires `SessionStart` for the `resume`, `clear` and `compact` sources with the same `session_id`, and a run has exactly one `run.started`. The `start` step therefore does nothing when the run file already exists. You can narrow the hook as well with `"matcher": "startup"` on `SessionStart`, but the file check is the guard that holds either way.
 
 The hook reports that the session needs attention, not what was said. A session that is closed with Ctrl+C may never reach `SessionEnd`: the run then turns `abandoned` after an hour, which is the intended outcome.
 
@@ -85,8 +90,9 @@ A reader replays the file from the start, then follows it. Only lines ended by `
 Replay and fold with the CLI:
 
 ```sh
-cat .git/.agents/events/r1.jsonl                   # replay: the events
-npx agent-events state .git/.agents/events/r1.jsonl  # the fold, as JSON
+E=$(git rev-parse --path-format=absolute --git-common-dir)/.agents/events  # not always .git/
+cat "$E/r1.jsonl"                     # replay: the events
+npx agent-events state "$E/r1.jsonl"  # the fold, as JSON
 ```
 
 The same in a Node.js reader that also follows (`node reader.mjs <file> [--follow]`). It folds the whole file again on every change, which is enough for files of this size; a reader in another language folds the events and checks itself against `fixtures/state/`.

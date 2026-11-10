@@ -74,6 +74,25 @@ describe('getting-started writers produce valid runs', () => {
     assert.equal(v.status, 0, v.stdout + v.stderr)
   })
 
+  it('a second SessionStart (resume, compact) for the same session adds no run.started', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
+    writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
+    writeFileSync(join(dir, 'ae-hook.sh'), block(guide, 'ae-hook.sh'))
+    const stdin = '{"session_id":"7f3c-sess","hook_event_name":"SessionStart"}'
+    for (const step of ['start', 'start', 'end']) {
+      const r = sh(`sh "${dir}/ae-hook.sh" ${step}`, { AGENT_EVENTS_DIR: dir }, stdin)
+      assert.equal(r.status, 0, r.stderr)
+    }
+    const file = join(dir, '7f3c-sess.jsonl')
+    const types = readFileSync(file, 'utf8')
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).type)
+    assert.deepEqual(types, ['run.started', 'run.finished'])
+    const v = validate(file)
+    assert.equal(v.status, 0, v.stdout + v.stderr)
+  })
+
   it('the hook does nothing without a session id', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
     writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
@@ -101,7 +120,14 @@ describe('getting-started writers produce valid runs', () => {
     const events = calls.map((c, i) => {
       const { run: _r, ...body } = c.arguments
       const type = c.name === 'agent_events_start' ? { type: 'run.started', tone: 'neutral' } : {}
-      return { v: 1, seq: i + 1, ts: '2026-11-10T10:00:00Z', run, ...type, ...body }
+      return {
+        v: 1,
+        seq: i + 1,
+        ts: '2026-11-10T10:00:00Z',
+        run,
+        ...type,
+        ...body,
+      }
     })
     const dir = mkdtempSync(join(tmpdir(), 'ae-mcp-'))
     const file = join(dir, `${run}.jsonl`)
@@ -123,15 +149,19 @@ describe('getting-started reader', () => {
       JSON.stringify(join(root, 'dist/index.js')),
     )
     writeFileSync(join(dir, 'reader.mjs'), src)
-    const r = spawnSync(process.execPath, [join(dir, 'reader.mjs'), file], { encoding: 'utf8' })
+    const r = spawnSync(process.execPath, [join(dir, 'reader.mjs'), file], {
+      encoding: 'utf8',
+    })
     assert.equal(r.status, 0, r.stderr)
     const state = JSON.parse(r.stdout)
     assert.equal(state.run, 'r11')
   })
 
   it('the documented state command prints the same fold', () => {
-    assert.ok(guide.includes('npx agent-events state .git/.agents/events/r1.jsonl'))
-    const r = spawnSync(process.execPath, [cli, 'state', file], { encoding: 'utf8' })
+    assert.ok(guide.includes('npx agent-events state "$E/r1.jsonl"'))
+    const r = spawnSync(process.execPath, [cli, 'state', file], {
+      encoding: 'utf8',
+    })
     assert.equal(r.status, 0, r.stderr)
     assert.equal(JSON.parse(r.stdout).run, 'r11')
   })
