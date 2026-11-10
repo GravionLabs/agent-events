@@ -2,6 +2,18 @@
 
 The key words MUST, SHOULD and MAY are used as in RFC 2119. This document is the core; see [ADR 0001](docs/adr/0001-general-core-with-profiles-and-bindings.md) for the reasons. Status: 0.x, may break.
 
+## Glossary
+
+- **Run**: one execution of an agent workflow, identified by `run`.
+- **Event**: one JSON object of a run. The core speaks of events, a binding maps them to its framing.
+- **Envelope**: the fields `v`, `seq`, `ts` and `run` of an event. The rest is the body.
+- **Producer**: whatever emits the body of an event (`type`, `tone`, `needsYou`, the fields of the type), such as an agent or a script.
+- **Writer**: the single component that sequences the events of a run and owns its envelope. A run has one writer at a time. Producer and writer may be the same process or not ([ADR 0004](docs/adr/0004-binding-contract-and-envelope-stamping.md), Proposed).
+- **Reader**: whatever replays and follows events and folds them into the run state. Readers never write.
+- **Binding**: how events are carried, stored, found and followed, for example [jsonl-file](bindings/jsonl-file.md). Guide: [Writing a binding](docs/bindings.md).
+- **Profile**: an addition of types, fields, tone rules and state for one domain (see Profiles).
+- **Display**: a reader that shows runs to a human (see Displays are core readers).
+
 ## Model
 
 A **run** is one execution of an agent workflow. It writes **events**, an ordered sequence of JSON objects. The **state** of a run is the fold of its events. Writers keep no state that readers need; readers never write. How events are stored, found and followed is a binding: see [bindings/jsonl-file.md](bindings/jsonl-file.md).

@@ -7,6 +7,8 @@ export const repoBlob = 'https://github.com/GravionLabs/agent-events/blob/main/'
 export const pageRoutes: Record<string, string> = {
   'README.md': '/',
   'SPEC.md': '/SPEC',
+  'docs/getting-started.md': '/docs/getting-started',
+  'docs/bindings.md': '/docs/bindings',
   'docs/profiles.md': '/docs/profiles',
   'docs/subject-kinds.md': '/docs/subject-kinds',
   'bindings/jsonl-file.md': '/bindings/jsonl-file',

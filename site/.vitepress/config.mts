@@ -16,11 +16,14 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Specification', link: '/SPEC' },
+      { text: 'Getting started', link: '/docs/getting-started' },
       { text: 'Profiles', link: '/docs/profiles' },
       { text: 'Bindings', link: '/bindings/jsonl-file' },
     ],
     sidebar: [
       { text: 'Specification', link: '/SPEC' },
+      { text: 'Getting started', link: '/docs/getting-started' },
+      { text: 'Writing a binding', link: '/docs/bindings' },
       { text: 'Subject kinds', link: '/docs/subject-kinds' },
       { text: 'Writing a profile', link: '/docs/profiles' },
       { text: 'Binding: jsonl-file', link: '/bindings/jsonl-file' },
