@@ -21,6 +21,11 @@ describe('link rewrite of included files', () => {
     expect(html).toContain('href="/bindings/jsonl-file.html"')
   })
 
+  it('resolves a link to the mcp binding to its site page', async () => {
+    const html = await render('[m](../bindings/mcp.md)', 'docs/bindings.md')
+    expect(html).toContain('href="/bindings/mcp.html"')
+  })
+
   it('turns a link to any other repository file into a GitHub blob URL', async () => {
     const html = await render(
       '[adr](adr/0001-x.md) [ex](../examples/profiles/example/) [c](CHANGELOG.md)',

@@ -18,7 +18,13 @@ export default defineConfig({
       { text: 'Specification', link: '/SPEC' },
       { text: 'Getting started', link: '/docs/getting-started' },
       { text: 'Profiles', link: '/docs/profiles' },
-      { text: 'Bindings', link: '/bindings/jsonl-file' },
+      {
+        text: 'Bindings',
+        items: [
+          { text: 'jsonl-file', link: '/bindings/jsonl-file' },
+          { text: 'mcp (draft)', link: '/bindings/mcp' },
+        ],
+      },
     ],
     sidebar: [
       { text: 'Specification', link: '/SPEC' },
@@ -27,6 +33,7 @@ export default defineConfig({
       { text: 'Subject kinds', link: '/docs/subject-kinds' },
       { text: 'Writing a profile', link: '/docs/profiles' },
       { text: 'Binding: jsonl-file', link: '/bindings/jsonl-file' },
+      { text: 'Binding: mcp (draft)', link: '/bindings/mcp' },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/GravionLabs/agent-events' }],
   },

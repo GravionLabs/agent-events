@@ -40,6 +40,7 @@ describe('the built site', () => {
         'docs/getting-started.html',
         'docs/bindings.html',
         'bindings/jsonl-file.html',
+        'bindings/mcp.html',
       ]),
     )
   })
