@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { afterEach, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -99,6 +107,47 @@ describe('example profile', () => {
     const { code, err } = await run(['validate', '-', '--profile', '/no/such.json'], started)
     assert.equal(code, 1)
     assert.match(err[0] ?? '', /^profile:/)
+  })
+})
+
+describe('profile that cannot be compiled', () => {
+  const core = path('schema/v0/core.schema.json')
+  const dir = mkdtempSync(`${tmpdir()}/ae-profile-`)
+  const write = (name: string, schema: object) => {
+    const file = `${dir}/${name}`
+    writeFileSync(file, JSON.stringify(schema))
+    return file
+  }
+
+  it('reports a profile with the $id of the core schema in one line', async () => {
+    const { code, out, err } = await run(['validate', '-', '--profile', core], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${core}: error: `))
+    assert.match(err[0] ?? '', /already exists/)
+    assert.deepEqual(out, [])
+  })
+  it('reports two profiles with the same $id', async () => {
+    const a = write('a.json', { $id: 'https://example.invalid/dup.json', type: 'object' })
+    const b = write('b.json', { $id: 'https://example.invalid/dup.json', type: 'object' })
+    const { code, err } = await run(['validate', '-', '--profile', a, '--profile', b], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${b}: error: `))
+  })
+  it('reports an unresolvable $ref', async () => {
+    const f = write('ref.json', { $ref: 'https://example.invalid/missing.json' })
+    const { code, err } = await run(['validate', '-', '--profile', f], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${f}: error: `))
+  })
+  it('reports an invalid schema', async () => {
+    const f = write('bad.json', { type: 'nonsense' })
+    const { code, err } = await run(['validate', '-', '--profile', f], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${f}: error: `))
   })
 })
 
