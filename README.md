@@ -16,6 +16,8 @@ Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-cor
 | :------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
 | [SPEC.md](SPEC.md)                                 | the core: events, subject and links, tasks, attention, host, tone, profiles, compatibility, security |
 | [bindings/jsonl-file.md](bindings/jsonl-file.md)   | the jsonl-file binding: file, lifecycle, retention, location |
+| [bindings/mcp.md](bindings/mcp.md)                 | the mcp binding (draft): agents write through tools, readers subscribe to resources |
+| [docs/adr/](docs/adr/)                             | decisions: [0001](docs/adr/0001-general-core-with-profiles-and-bindings.md) core, profiles, bindings; [0002](docs/adr/0002-separate-reason-code-from-human-text.md) reason code apart from human text; [0003](docs/adr/0003-declare-profile-schemas-in-run-started.md) profile schemas declared in run.started; [0004](docs/adr/0004-binding-contract-and-envelope-stamping.md) binding contract, envelope stamping (proposed) |
 | `schema/v0/core.schema.json`                       | one line of a run file                                                                               |
 | `fixtures/events/valid/*.jsonl`, `invalid/*.jsonl` | writer fixtures: accepted and rejected run files                                                     |
 | [docs/subject-kinds.md](docs/subject-kinds.md)     | conventional `subject.kind` values                                                                   |
