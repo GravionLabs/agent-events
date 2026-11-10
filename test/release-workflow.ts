@@ -22,7 +22,11 @@ describe('release workflow takes the version from the commits (#72)', () => {
   })
   it('GitVersion.yml raises the minor version, not the major, for ! and BREAKING CHANGE', () => {
     const g = read('GitVersion.yml')
-    const rule = (k: string) => new RegExp(g.match(new RegExp(`^${k}: '(.*)'$`, 'm'))![1], 'm')
+    const rule = (k: string) => {
+      const m = g.match(new RegExp(`^${k}: '(.*)'$`, 'm'))
+      assert.ok(m, `${k} missing`)
+      return new RegExp(m[1], 'm')
+    }
     const major = rule('major-version-bump-message')
     const minor = rule('minor-version-bump-message')
     const breaking = 'feat(spec)!: separate reason code\n\nbody\n\nBREAKING CHANGE: x\n'
