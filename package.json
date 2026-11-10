@@ -8,6 +8,15 @@
     "url": "git+https://github.com/GravionLabs/agent-events.git"
   },
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "agent-events": "dist/cli.js"
   },
@@ -16,12 +25,12 @@
     "schema"
   ],
   "engines": {
-    "node": ">=26"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
-    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/node-version.ts test/release-notes.ts test/install.ts test/release-workflow.ts",
+    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/docs-guides.ts test/node-version.ts test/release-notes.ts test/install.ts test/release-workflow.ts test/action.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format .",

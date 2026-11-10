@@ -1,12 +1,14 @@
 # agent-events
 
-agent-events is the event format in which an agent run leaves its progress: one JSON Lines file per run, one event per line.
+agent-events is an event format for agent runs: the events in which a run leaves its progress. The format is independent of harness, skill and transport. Bindings carry it over a transport: a file, or a stream such as MCP. The first binding is JSON Lines, one JSON Lines file per run with one event per line ([bindings/jsonl-file.md](bindings/jsonl-file.md)).
 
-- A **writer** (an emitter such as `Report-Progress.ps1` of [GravionLabs/skills](https://github.com/GravionLabs/skills)) appends events.
-- A **reader** (poimen, a herdr plugin, an agent) replays the file and follows it. The state of a run is the fold of its events.
+Writers and readers are examples of what uses the format, not parts of it:
+
+- A **writer** appends events, for example `Report-Progress.ps1` of [GravionLabs/skills](https://github.com/GravionLabs/skills).
+- A **reader** replays the events and follows them, for example poimen, herdr or an agent. The state of a run is the fold of its events.
 - agent-events is this specification, the JSON Schemas and the fixtures that every reader checks its own fold against. Besides that it ships a validator, the `agent-events` CLI and a GitHub Action.
 
-Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-core-with-profiles-and-bindings.md)). Read the [specification](SPEC.md).
+Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-core-with-profiles-and-bindings.md)). Read the [specification](SPEC.md), which starts with a glossary, or [get started](docs/getting-started.md).
 
 ## Contents
 
@@ -15,9 +17,11 @@ Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-cor
 | [SPEC.md](SPEC.md)                                 | the core: events, subject and links, tasks, attention, host, tone, profiles, compatibility, security |
 | [bindings/jsonl-file.md](bindings/jsonl-file.md)   | the jsonl-file binding: file, lifecycle, retention, location |
 | [bindings/mcp.md](bindings/mcp.md)                 | the mcp binding (draft): agents write through tools, readers subscribe to resources |
-| [docs/adr/](docs/adr/)                             | decisions: [0001](docs/adr/0001-general-core-with-profiles-and-bindings.md) core, profiles, bindings; [0002](docs/adr/0002-binding-contract-and-envelope-stamping.md) binding contract, envelope stamping (proposed) |
+| [docs/adr/](docs/adr/)                             | decisions: [0001](docs/adr/0001-general-core-with-profiles-and-bindings.md) core, profiles, bindings; [0002](docs/adr/0002-separate-reason-code-from-human-text.md) reason code apart from human text; [0003](docs/adr/0003-declare-profile-schemas-in-run-started.md) profile schemas declared in run.started; [0004](docs/adr/0004-binding-contract-and-envelope-stamping.md) binding contract, envelope stamping (proposed) |
 | `schema/v0/core.schema.json`                       | one line of a run file                                                                               |
 | `fixtures/events/valid/*.jsonl`, `invalid/*.jsonl` | writer fixtures: accepted and rejected run files                                                     |
+| [docs/getting-started.md](docs/getting-started.md) | write and read a run in minutes: shell function, Claude Code hook, MCP tool call, a reader |
+| [docs/bindings.md](docs/bindings.md)               | writing a binding: the contract, with jsonl-file and mcp as examples |
 | [docs/subject-kinds.md](docs/subject-kinds.md)     | conventional `subject.kind` values                                                                   |
 | [docs/profiles.md](docs/profiles.md)               | how to write a profile, with an example in `examples/profiles/example/` |
 | [CHANGELOG.md](CHANGELOG.md)                       | versions                                                                                             |
@@ -32,12 +36,32 @@ npx agent-events validate r1.jsonl --profile examples/profiles/example/example.s
 npx agent-events validate r1.jsonl --profile https://example.org/profiles/deliver/v1/deliver.schema.json
 ```
 
-`--profile <path|url>` is repeatable; each profile schema is applied to every line in addition to the core schema. Findings print one per line as `<file>:<line>: <error|note>: <message>`; the exit code is 0 when there is no error (notes are fine) and 1 otherwise. Checks: the core schema (and profiles) per line, `seq` gapless from 1, one `run` per file, `run.started` first and only once, lines up to 16384 bytes. An incomplete last line (no newline yet) is reported as a note, not an error.
+`--profile <path|url>` is repeatable; A profile that cannot be compiled (an `$id` already in use, an unresolvable `$ref`, an invalid schema) prints `<profile>: error: <message>` and exits 1. each profile schema is applied to every line in addition to the core schema. Findings print one per line as `<file>:<line>: <error|note>: <message>`; the exit code is 0 when there is no error (notes are fine) and 1 otherwise. Checks: the core schema (and profiles) per line, `seq` gapless from 1, one `run` per file, `run.started` first and only once, lines up to 16384 bytes. An incomplete last line (no newline yet) is reported as a note, not an error.
 
 ```text
 r1.jsonl:3: error: seq 5, expected 3
 r1.jsonl:9: note: incomplete last line skipped
 ```
+
+## Fold a run file into its state
+
+```sh
+npx agent-events state r1.jsonl                          # the run state as JSON
+cat r1.jsonl | npx agent-events state -                  # stdin
+npx agent-events state r1.jsonl --now 2026-11-08T12:00:00Z   # the clock for the abandoned status
+```
+
+`state` prints the reference fold of [SPEC.md](SPEC.md) "Run state". `--now <ts>` (RFC 3339) is the reader's clock: a running run whose last event is more than an hour older is `abandoned`; the default is the current time. Readers in any language compare their own fold with this output.
+
+TypeScript readers import the same fold:
+
+```ts
+import { fold, type RunState } from 'agent-events'
+
+const state: RunState = fold(text, new Date())
+```
+
+`fold(text, now)` takes the file text and the reader's clock; `ABANDONED_AFTER_MS` and the `Link` type are exported too.
 
 ### GitHub Action
 
@@ -49,7 +73,7 @@ r1.jsonl:9: note: incomplete last line skipped
       examples/profiles/example/example.schema.json
 ```
 
-Inputs: `files` (file or glob), `profiles` (one path or URL per line), `version` (npm version of `agent-events`, default `latest`).
+Inputs: `files` (file or glob), `profiles` (one path or URL per line), `version` (npm version of `agent-events`; default: the CLI of the Action's own ref, built from its checkout, so `@v0` runs the code of `v0`; set it to an npm version once the package is published).
 
 ## Install
 
@@ -69,7 +93,7 @@ npm install && npm test   # validates all fixtures against the core schema
 
 ## Development
 
-Toolchain: Node.js 26 or newer (runs TypeScript directly in tests), TypeScript (type check, and `npm run build` compiles `src/` to `dist/` for the npm package, because Node does not strip types under `node_modules`), Biome (lint and format) and `node:test` with `node:assert`.
+The package runs on Node.js 22 or newer (compiled `dist/`). Toolchain: Node.js 26 or newer (runs TypeScript directly in tests), TypeScript (type check, and `npm run build` compiles `src/` to `dist/` for the npm package, because Node does not strip types under `node_modules`), Biome (lint and format) and `node:test` with `node:assert`.
 
 ```sh
 npm run build       # tsc: src/ to dist/

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
-import AjvModule from 'ajv/dist/2020.js'
 import type { ValidateFunction } from 'ajv/dist/2020.js'
+import AjvModule from 'ajv/dist/2020.js'
 import formatsModule from 'ajv-formats'
 
 // Both packages are CommonJS; under nodenext their default import is typed as the module object.
@@ -23,7 +23,29 @@ export function compileSchemas(profiles: object[] = []): ValidateFunction[] {
   return [coreSchema(), ...profiles].map((schema) => ajv.compile(schema))
 }
 
-type Event = { seq: number; run: string; type: string }
+type Event = {
+  done?: unknown
+  total?: unknown
+  seq: number
+  run: string
+  type: string
+  profiles?: unknown
+  profileSchemas?: unknown
+}
+
+// The profileSchemas map of the run.started on the first line (key to URL); empty when absent or unreadable.
+export function declaredSchemas(text: string): Record<string, string> {
+  try {
+    const first = JSON.parse(text.split('\n')[0] ?? '') as Event
+    const map = first.type === 'run.started' ? first.profileSchemas : undefined
+    if (typeof map !== 'object' || map === null || Array.isArray(map)) return {}
+    return Object.fromEntries(
+      Object.entries(map).filter((e): e is [string, string] => typeof e[1] === 'string'),
+    )
+  } catch {
+    return {}
+  }
+}
 
 // Checks the text of one run file; returns the findings in line order.
 export function checkRun(text: string, profiles: object[] = []): Finding[] {
@@ -65,6 +87,18 @@ export function checkRun(text: string, profiles: object[] = []): Finding[] {
       for (const e of v.errors ?? []) error(n, `schema: ${e.instancePath || '/'} ${e.message}`)
     }
     if (!valid) return
+    if (obj.type === 'run.started' && typeof obj.profileSchemas === 'object') {
+      const declared = Array.isArray(obj.profiles) ? obj.profiles : []
+      for (const key of Object.keys(obj.profileSchemas as object))
+        if (!declared.includes(key))
+          findings.push({
+            line: n,
+            level: 'note',
+            message: `profileSchemas key ${key} is not in profiles`,
+          })
+    }
+    if (obj.type === 'progress' && Number(obj.done) > Number(obj.total))
+      error(n, `progress done ${obj.done} is above total ${obj.total}`)
     if (isFirst && obj.type !== 'run.started')
       error(n, `first event is ${obj.type}, expected run.started`)
     if (!isFirst && obj.type === 'run.started') error(n, 'run.started is not the first event')

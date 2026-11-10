@@ -1,0 +1,1 @@
+<!--@include: ../../bindings/mcp.md-->

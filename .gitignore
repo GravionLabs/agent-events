@@ -1,2 +1,6 @@
 node_modules
 dist
+
+site/public/schema/
+site/.vitepress/dist/
+site/.vitepress/cache/

@@ -5,9 +5,11 @@ export const ABANDONED_AFTER_MS = 60 * 60 * 1000
 
 // biome-ignore lint/suspicious/noExplicitAny: events are untrusted JSON, read defensively
 type Json = Record<string, any>
-type Link = { rel: string; url: string; title?: string }
+export type Link = { rel: string; url: string; title?: string }
 
-export function foldRun(text: string, now: Date): Json {
+export type RunState = Json
+
+export function fold(text: string, now: Date): RunState {
   const lines = text.split('\n')
   if (!text.endsWith('\n')) lines.pop() // incomplete last line
   const tasks = new Map<string, Json>()
@@ -46,7 +48,13 @@ export function foldRun(text: string, now: Date): Json {
         state.status = 'finished'
         state.outcome = e.outcome
         if (e.reason !== undefined) state.reason = e.reason
+        if (e.text !== undefined) state.text = e.text
         attentions.length = 0
+        for (const t of tasks.values()) {
+          const { step: _s, progress: _p, ...rest } = t
+          finished.cancelled.push({ ...rest, reason: 'run-finished', text: 'run finished' })
+        }
+        tasks.clear()
         break
       case 'task.started':
         if (!seen.has(e.task)) {
@@ -63,19 +71,26 @@ export function foldRun(text: string, now: Date): Json {
         if (!t || !(e.outcome in finished)) break
         tasks.delete(e.task)
         const { step: _s, progress: _p, ...rest } = t
-        finished[e.outcome].push({ ...rest, ...(e.reason !== undefined && { reason: e.reason }) })
+        finished[e.outcome].push({
+          ...rest,
+          ...(e.reason !== undefined && { reason: e.reason }),
+          ...(e.text !== undefined && { text: e.text }),
+        })
         for (let i = attentions.length - 1; i >= 0; i--)
           if (attentions[i].task === e.task) attentions.splice(i, 1)
         break
       }
       case 'step.started':
       case 'step.finished': {
-        const t = tasks.get(e.task)
-        if (!t) break
-        t.step = e.step
+        const t = e.task === undefined ? undefined : tasks.get(e.task)
+        if (e.task !== undefined && !t) break
+        if (t) t.step = e.step
+        else state.step = e.step
         if (e.type === 'step.finished' && e.links?.length) {
-          t.links ??= []
-          addLinks(t.links, e.links)
+          if (t) {
+            t.links ??= []
+            addLinks(t.links, e.links)
+          }
           addLinks(links, e.links)
         }
         break
@@ -95,6 +110,7 @@ export function foldRun(text: string, now: Date): Json {
           id: e.id,
           ...(e.task !== undefined && { task: e.task }),
           reason: e.reason,
+          ...(e.text !== undefined && { text: e.text }),
           needsYou: e.needsYou,
           ...(e.links && { links: e.links }),
         })

@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { readdirSync, readFileSync } from 'node:fs'
-import { describe, it } from 'node:test'
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { afterEach, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { checkRun, hasErrors } from '../src/check.ts'
-import { main } from '../src/cli.ts'
+import { isEntry, main } from '../src/cli.ts'
 
 const path = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url))
 const read = (p: string) => readFileSync(path(p), 'utf8')
@@ -101,6 +110,126 @@ describe('example profile', () => {
   })
 })
 
+describe('profile that cannot be compiled', () => {
+  const core = path('schema/v0/core.schema.json')
+  const dir = mkdtempSync(`${tmpdir()}/ae-profile-`)
+  const write = (name: string, schema: object) => {
+    const file = `${dir}/${name}`
+    writeFileSync(file, JSON.stringify(schema))
+    return file
+  }
+
+  it('reports a profile with the $id of the core schema in one line', async () => {
+    const { code, out, err } = await run(['validate', '-', '--profile', core], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${core}: error: `))
+    assert.match(err[0] ?? '', /already exists/)
+    assert.deepEqual(out, [])
+  })
+  it('reports two profiles with the same $id', async () => {
+    const a = write('a.json', { $id: 'https://example.invalid/dup.json', type: 'object' })
+    const b = write('b.json', { $id: 'https://example.invalid/dup.json', type: 'object' })
+    const { code, err } = await run(['validate', '-', '--profile', a, '--profile', b], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${b}: error: `))
+  })
+  it('reports an unresolvable $ref', async () => {
+    const f = write('ref.json', { $ref: 'https://example.invalid/missing.json' })
+    const { code, err } = await run(['validate', '-', '--profile', f], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${f}: error: `))
+  })
+  it('reports an invalid schema', async () => {
+    const f = write('bad.json', { type: 'nonsense' })
+    const { code, err } = await run(['validate', '-', '--profile', f], started)
+    assert.equal(code, 1)
+    assert.equal(err.length, 1)
+    assert.ok((err[0] ?? '').startsWith(`${f}: error: `))
+  })
+})
+
+describe('declared profiles', () => {
+  const dir = 'examples/profiles/example'
+  const schema = path(`${dir}/example.schema.json`)
+  const review = path(`${dir}/review.jsonl`)
+  const url = 'https://example.invalid/profiles/example/v1/example.schema.json'
+  const realFetch = globalThis.fetch
+  afterEach(() => {
+    globalThis.fetch = realFetch
+  })
+  const stub = (respond: (u: string) => Response) => {
+    const calls: string[] = []
+    globalThis.fetch = (async (u: string) => {
+      calls.push(String(u))
+      return respond(String(u))
+    }) as typeof fetch
+    return calls
+  }
+  const exampleSchema = () => Response.json(JSON.parse(read(`${dir}/example.schema.json`)))
+
+  it('fetches the declared URL and applies it', async () => {
+    const calls = stub(exampleSchema)
+    const ok = await run(['validate', review, '--declared-profiles'])
+    assert.deepEqual([ok.code, ok.out, calls], [0, [], [url]])
+    const bad = read(`${dir}/review.jsonl`).replace(/"verdict":"[a-z-]+",?/, '')
+    const res = await run(['validate', '-', '--declared-profiles'], bad)
+    assert.equal(res.code, 1)
+    assert.match(res.out.join('\n'), /error: schema/)
+  })
+  it('fetches nothing without the flag', async () => {
+    const calls = stub(exampleSchema)
+    const { code } = await run(['validate', review])
+    assert.deepEqual([code, calls], [0, []])
+  })
+  it('lets a --profile with the same $id replace the fetch', async () => {
+    const calls = stub(() => new Response('', { status: 500 }))
+    const { code, out } = await run([
+      'validate',
+      review,
+      '--declared-profiles',
+      '--profile',
+      schema,
+    ])
+    assert.deepEqual([code, out, calls], [0, [], []])
+  })
+  it('caches a URL across files', async () => {
+    const calls = stub(exampleSchema)
+    const { code } = await run(['validate', review, review, '--declared-profiles'])
+    assert.deepEqual([code, calls], [0, [url]])
+  })
+  it('prints profile: <url>: … and exits 1 when the fetch fails', async () => {
+    stub(() => new Response('', { status: 404 }))
+    const { code, err } = await run(['validate', review, '--declared-profiles'])
+    assert.equal(code, 1)
+    assert.equal(err[0], `profile: ${url}: HTTP 404`)
+  })
+  it('rejects a declared local path or http URL without reading or fetching', async () => {
+    const calls = stub(exampleSchema)
+    for (const value of ['/etc/hostname', 'http://example.invalid/x.schema.json']) {
+      const text = started.replace(
+        '"profiles":[]',
+        `"profiles":[],"profileSchemas":{"a@1":"${value}"}`,
+      )
+      const { code, err } = await run(['validate', '-', '--declared-profiles'], text)
+      assert.deepEqual([code, err, calls], [1, [`profile: ${value}: not an https URL`], []])
+    }
+  })
+  it('reports a fetched schema that is not a valid JSON Schema', async () => {
+    stub(() => Response.json({ type: 'nonsense' }))
+    const { code, err } = await run(['validate', review, '--declared-profiles'])
+    assert.equal(code, 1)
+    assert.match(err[0] ?? '', new RegExp(`^profile: ${url}: .+`))
+  })
+  it('does nothing for a file without profileSchemas', async () => {
+    const calls = stub(exampleSchema)
+    const { code } = await run(['validate', '-', '--declared-profiles'], started)
+    assert.deepEqual([code, calls], [0, []])
+  })
+})
+
 describe('cli', () => {
   it('prints findings as file:line: level: message', async () => {
     const { out } = await run(['validate', '-'], `${started}{"v":1`)
@@ -132,5 +261,64 @@ describe('cli', () => {
     })
     assert.equal(bad.status, 1)
     assert.match(execFileSync('node', [bin, '--help']).toString(), /Usage: agent-events validate/)
+  })
+  it('runs when invoked through a symlink like the npm bin shim (#63)', () => {
+    const dir = mkdtempSync(`${tmpdir()}/ae-bin-`)
+    try {
+      const link = `${dir}/agent-events`
+      symlinkSync(path('dist/cli.js'), link)
+      const bad = spawnSync('node', [link, 'validate', '-'], {
+        input: ev(2, 'run.finished', ',"outcome":"succeeded"'),
+      })
+      assert.equal(bad.status, 1)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+  it('isEntry compares real paths and never needs import.meta.main (#63)', () => {
+    const self = path('src/cli.ts')
+    const url = new URL('../src/cli.ts', import.meta.url).href
+    assert.equal(isEntry(self, url), true)
+    assert.equal(isEntry(path('src/check.ts'), url), false)
+    assert.equal(isEntry(undefined, url), false)
+    assert.equal(isEntry('/no/such/file', url), false)
+  })
+})
+
+describe('state command', () => {
+  const dir = path('fixtures/state')
+  const cases = readdirSync(dir)
+    .filter((f) => f.endsWith('.jsonl'))
+    .map((f) => f.slice(0, -'.jsonl'.length))
+  for (const c of cases) {
+    it(`prints the state of ${c}`, async () => {
+      const nowFile = `fixtures/state/${c}.now`
+      const now = existsSync(path(nowFile)) ? read(nowFile).trim() : '2026-11-08T10:30:00.000Z'
+      const r = await run(['state', path(`fixtures/state/${c}.jsonl`), '--now', now])
+      assert.equal(r.code, 0)
+      assert.deepEqual(
+        JSON.parse(r.out.join('\n')),
+        JSON.parse(read(`fixtures/state/${c}.state.json`)),
+      )
+    })
+  }
+
+  it('reads stdin with -', async () => {
+    const r = await run(['state', '-', '--now', '2026-11-08T10:00:30.000Z'], started)
+    assert.equal(r.code, 0)
+    assert.equal(JSON.parse(r.out.join('\n')).status, 'running')
+  })
+
+  it('marks an old run abandoned with a late --now', async () => {
+    const r = await run(['state', '-', '--now', '2026-11-08T12:00:00.000Z'], started)
+    assert.equal(JSON.parse(r.out.join('\n')).status, 'abandoned')
+  })
+
+  it('fails on a missing file, a bad --now and a missing argument', async () => {
+    assert.equal((await run(['state', '/no/such/file.jsonl'])).code, 1)
+    const bad = await run(['state', '-', '--now', 'yesterday'], started)
+    assert.equal(bad.code, 1)
+    assert.match(bad.err[0] as string, /--now/)
+    assert.equal((await run(['state'])).code, 1)
   })
 })

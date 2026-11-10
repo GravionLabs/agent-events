@@ -15,7 +15,7 @@ A run lists its profiles in `run.started` as `name@major`: `"profiles": ["delive
 
 ## Tone rules
 
-The core only defines the values of `tone` and `needsYou`. The profile says when which applies to its own types, for example `warning` plus `needsYou: true` when a review requests changes. The writer sets them; a display never derives them again. Reasons of `attention` for the profile are prefixed too (`example.changes-requested`).
+The core only defines the values of `tone` and `needsYou`. The profile says when which applies to its own types, for example `warning` plus `needsYou: true` when a review requests changes. The writer sets them; a display never derives them again. Reasons of `attention` for the profile are prefixed too (`example.changes-requested`). `reason` is always a code (`^[a-z][a-z0-9.-]*$`), never a sentence; the human sentence goes into the optional `text`. A display shows `text` and falls back to `reason`.
 
 ## State extension
 
@@ -33,7 +33,9 @@ A run file is valid when every line is valid against the core schema and, for a 
 npx agent-events validate review.jsonl --profile example.schema.json
 ```
 
-`--profile` takes a path or a URL and may be repeated. The test `test/profile.ts` shows the same with Ajv.
+`--profile` takes a path or a URL and may be repeated.
+
+A run can say where its profile schemas live: `run.started` takes an optional `profileSchemas` map from a `profiles` entry to the `https://` URL of its schema (`"profileSchemas": {"deliver@1": "https://…/deliver.schema.json"}`). The validator ignores it unless asked: `--declared-profiles` fetches every URL of the file's map and applies it like `--profile`; without the flag there is no network access. A fetch that fails prints `profile: <url>: …` and exits 1. A `--profile` schema whose `$id` equals a declared URL replaces that fetch, so `npx agent-events validate review.jsonl --declared-profiles --profile example.schema.json` works offline. A key that is not in `profiles` is a note. Readers and displays never need the schema. The test `test/profile.ts` shows the same with Ajv.
 
 ## Where profiles live
 

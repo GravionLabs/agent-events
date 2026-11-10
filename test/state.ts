@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import AjvModule from 'ajv/dist/2020.js'
 import formatsModule from 'ajv-formats'
-import { foldRun } from './fold.ts'
+import { fold } from '../src/fold.ts'
 
 const Ajv2020 = AjvModule as unknown as typeof AjvModule.default
 const addFormats = formatsModule as unknown as typeof formatsModule.default
@@ -32,7 +32,15 @@ describe('state fixtures', () => {
       )
       const expected = JSON.parse(readFileSync(new URL(`${c}.state.json`, dir), 'utf8'))
       assert.ok(stateSchema(expected), JSON.stringify(stateSchema.errors))
-      assert.deepEqual(foldRun(text, now), expected)
+      assert.deepEqual(fold(text, now), expected)
     })
   }
+})
+
+describe('package export', () => {
+  it('exposes fold from the entry point', async () => {
+    const index = await import('../src/index.ts')
+    assert.equal(index.fold, fold)
+    assert.equal(index.ABANDONED_AFTER_MS, 3600000)
+  })
 })
