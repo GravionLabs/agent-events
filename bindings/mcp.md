@@ -1,6 +1,6 @@
 # Binding: mcp (draft)
 
-Status: draft, written against the binding contract of [ADR 0002](../docs/adr/0002-binding-contract-and-envelope-stamping.md). It does not change the core ([SPEC.md](../SPEC.md)). The key words MUST, SHOULD and MAY are used as in RFC 2119.
+Status: draft, written against the binding contract of [ADR 0004](../docs/adr/0004-binding-contract-and-envelope-stamping.md). It does not change the core ([SPEC.md](../SPEC.md)). The key words MUST, SHOULD and MAY are used as in RFC 2119.
 
 An **agent-events MCP server** carries runs over the [Model Context Protocol](https://modelcontextprotocol.io). It is the writer of every run it holds: agents (producers) report through tools, and readers (displays, other agents) read through resources and subscriptions. The binding is the same for every harness that speaks MCP; it does not depend on a skill or on how the server stores events.
 
