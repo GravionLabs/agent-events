@@ -8,7 +8,7 @@ Writers and readers are examples of what uses the format, not parts of it:
 - A **reader** replays the events and follows them, for example poimen, herdr or an agent. The state of a run is the fold of its events.
 - agent-events is this specification, the JSON Schemas and the fixtures that every reader checks its own fold against. Besides that it ships a validator, the `agent-events` CLI and a GitHub Action.
 
-Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-core-with-profiles-and-bindings.md)). Read the [specification](SPEC.md).
+Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-core-with-profiles-and-bindings.md)). Read the [specification](SPEC.md), which starts with a glossary, or [get started](docs/getting-started.md).
 
 ## Contents
 
@@ -20,6 +20,8 @@ Status: 0.x, the core is being rebuilt (see [ADR 0001](docs/adr/0001-general-cor
 | [docs/adr/](docs/adr/)                             | decisions: [0001](docs/adr/0001-general-core-with-profiles-and-bindings.md) core, profiles, bindings; [0002](docs/adr/0002-separate-reason-code-from-human-text.md) reason code apart from human text; [0003](docs/adr/0003-declare-profile-schemas-in-run-started.md) profile schemas declared in run.started; [0004](docs/adr/0004-binding-contract-and-envelope-stamping.md) binding contract, envelope stamping (proposed) |
 | `schema/v0/core.schema.json`                       | one line of a run file                                                                               |
 | `fixtures/events/valid/*.jsonl`, `invalid/*.jsonl` | writer fixtures: accepted and rejected run files                                                     |
+| [docs/getting-started.md](docs/getting-started.md) | write and read a run in minutes: shell function, Claude Code hook, MCP tool call, a reader |
+| [docs/bindings.md](docs/bindings.md)               | writing a binding: the contract, with jsonl-file and mcp as examples |
 | [docs/subject-kinds.md](docs/subject-kinds.md)     | conventional `subject.kind` values                                                                   |
 | [docs/profiles.md](docs/profiles.md)               | how to write a profile, with an example in `examples/profiles/example/` |
 | [CHANGELOG.md](CHANGELOG.md)                       | versions                                                                                             |

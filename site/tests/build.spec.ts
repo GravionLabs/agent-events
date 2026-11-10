@@ -37,6 +37,8 @@ describe('the built site', () => {
         'SPEC.html',
         'docs/profiles.html',
         'docs/subject-kinds.html',
+        'docs/getting-started.html',
+        'docs/bindings.html',
         'bindings/jsonl-file.html',
       ]),
     )
@@ -44,7 +46,12 @@ describe('the built site', () => {
 
   it('does not publish ADRs or other docs', () => {
     const docs = listFiles(dist).filter((f) => f.startsWith('docs/'))
-    expect(docs.sort()).toEqual(['docs/profiles.html', 'docs/subject-kinds.html'])
+    expect(docs.sort()).toEqual([
+      'docs/bindings.html',
+      'docs/getting-started.html',
+      'docs/profiles.html',
+      'docs/subject-kinds.html',
+    ])
     expect(listFiles(dist).filter((f) => /adr/i.test(f))).toEqual([])
   })
 })
