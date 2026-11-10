@@ -20,6 +20,9 @@ describe('release workflow takes the version from the commits (#72)', () => {
     assert.match(y, /conventional-commits: 'false'/)
     assert.match(y, /gitversion-config-file: GitVersion\.yml/)
   })
+  it('GitVersion.yml uses ContinuousDeployment so main yields the plain version', () => {
+    assert.match(read('GitVersion.yml'), /^mode: ContinuousDeployment$/m)
+  })
   it('GitVersion.yml raises the minor version, not the major, for ! and BREAKING CHANGE', () => {
     const g = read('GitVersion.yml')
     const rule = (k: string) => {
