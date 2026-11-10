@@ -158,7 +158,7 @@ describe('getting-started reader', () => {
   })
 
   it('the documented state command prints the same fold', () => {
-    assert.ok(guide.includes('npx agent-events state .git/.agents/events/r1.jsonl'))
+    assert.ok(guide.includes('npx agent-events state "$E/r1.jsonl"'))
     const r = spawnSync(process.execPath, [cli, 'state', file], {
       encoding: 'utf8',
     })
