@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { afterEach, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { checkRun, hasErrors } from '../src/check.ts'
-import { main } from '../src/cli.ts'
+import { isEntry, main } from '../src/cli.ts'
 
 const path = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url))
 const read = (p: string) => readFileSync(path(p), 'utf8')
@@ -211,6 +212,27 @@ describe('cli', () => {
     })
     assert.equal(bad.status, 1)
     assert.match(execFileSync('node', [bin, '--help']).toString(), /Usage: agent-events validate/)
+  })
+  it('runs when invoked through a symlink like the npm bin shim (#63)', () => {
+    const dir = mkdtempSync(`${tmpdir()}/ae-bin-`)
+    try {
+      const link = `${dir}/agent-events`
+      symlinkSync(path('dist/cli.js'), link)
+      const bad = spawnSync('node', [link, 'validate', '-'], {
+        input: ev(2, 'run.finished', ',"outcome":"succeeded"'),
+      })
+      assert.equal(bad.status, 1)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+  it('isEntry compares real paths and never needs import.meta.main (#63)', () => {
+    const self = path('src/cli.ts')
+    const url = new URL('../src/cli.ts', import.meta.url).href
+    assert.equal(isEntry(self, url), true)
+    assert.equal(isEntry(path('src/check.ts'), url), false)
+    assert.equal(isEntry(undefined, url), false)
+    assert.equal(isEntry('/no/such/file', url), false)
   })
 })
 

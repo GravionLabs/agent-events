@@ -29,6 +29,9 @@ describe('supported Node floor is aligned (#10)', () => {
     assert.match(ci, new RegExp(`node: \\["${PACKAGE_FLOOR}", "${FLOOR}"\\]`))
     assert.match(ci, /node dist\/cli\.js validate "fixtures\/events\/valid/)
   })
+  it('CI requires exit 1 from the built CLI on an invalid fixture (#63)', () => {
+    assert.match(read('.github/workflows/ci.yml'), /fixtures\/events\/invalid\/bad-tone\.jsonl/)
+  })
   for (const f of ['.github/workflows/ci.yml', '.github/workflows/release.yml', 'action.yml']) {
     it(`${f} uses node-version ${FLOOR}`, () => {
       const versions = [...read(f).matchAll(/node-version:\s*"?([^"\s]+)"?/g)]

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { globSync, readFileSync } from 'node:fs'
+import { globSync, readFileSync, realpathSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { checkRun, compileSchemas, declaredSchemas, hasErrors } from './check.ts'
 import { fold } from './fold.ts'
 
@@ -159,4 +160,17 @@ export async function main(argv: string[], io: Io = defaultIo): Promise<number> 
   return failed ? 1 : 0
 }
 
-if (import.meta.main) process.exitCode = await main(process.argv.slice(2))
+/**
+ * True when this module is the process entry point. import.meta.main only exists from
+ * Node 22.18, so compare real paths instead (resolves npm's bin symlinks).
+ */
+export function isEntry(argv1: string | undefined, moduleUrl: string): boolean {
+  if (!argv1) return false
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl))
+  } catch {
+    return false
+  }
+}
+
+if (isEntry(process.argv[1], import.meta.url)) process.exitCode = await main(process.argv.slice(2))
