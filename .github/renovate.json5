@@ -1,0 +1,63 @@
+// Renovate keeps the npm packages (root and site/) and the GitHub Actions (workflows and action.yml) current: a few
+// pull requests a week against release/next, gated by CI, merged by a person (no automerge).
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  // github>GravionLabs/ci: 7 days minimum release age (security fixes exempt), actions pinned to commit SHAs.
+  extends: [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    "github>GravionLabs/ci",
+  ],
+  baseBranchPatterns: ["release/next"],
+  // `chore(deps): ...` keeps dependency updates out of the release notes.
+  // Issue titles start with their level: the dashboard is a PBI.
+  dependencyDashboard: true,
+  dependencyDashboardTitle: "[PBI] chore: Dependency Dashboard",
+  semanticCommitType: "chore",
+  semanticCommitScope: "deps",
+  timezone: "Europe/Zurich",
+  schedule: ["before 6am on monday"],
+  lockFileMaintenance: { enabled: true, schedule: ["before 6am on the first day of the month"] },
+  // Raise the range in package.json to the new version instead of leaving it as it was.
+  rangeStrategy: "bump",
+  automerge: false,
+  labels: ["dependencies"],
+  enabledManagers: ["npm", "github-actions"],
+  ignorePaths: ["**/node_modules/**"],
+  // A known vulnerability gets a pull request at once, outside the schedule.
+  vulnerabilityAlerts: { enabled: true, labels: ["security"], schedule: ["at any time"] },
+  osvVulnerabilityAlerts: true,
+  packageRules: [
+    {
+      // The site's tools in one pull request.
+      groupName: "site",
+      matchFileNames: ["site/**"],
+      matchUpdateTypes: ["minor", "patch"],
+    },
+    {
+      // Packages the repository pins to an exact version (no range in package.json) keep it.
+      matchManagers: ["npm"],
+      matchPackageNames: ["ajv", "ajv-formats"],
+      rangeStrategy: "pin",
+    },
+    {
+      // Workflows follow the major tag of the shared workflows on purpose: no digest pin.
+      matchManagers: ["github-actions"],
+      matchPackageNames: ["GravionLabs/ci", "GravionLabs/ci/**"],
+      pinDigests: false,
+    },
+    {
+      // ... and no major bump: a person raises @v1.
+      matchManagers: ["github-actions"],
+      matchPackageNames: ["GravionLabs/ci", "GravionLabs/ci/**"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+    {
+      // Majors get their own pull requests, labelled, and a person decides.
+      matchUpdateTypes: ["major"],
+      addLabels: ["major"],
+    },
+  ],
+}

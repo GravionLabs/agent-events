@@ -1,6 +1,6 @@
 {
   "name": "agent-events",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Validate agent-events run files (JSON Lines) against the core and profile schemas",
   "license": "MIT",
   "repository": {
@@ -30,7 +30,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
-    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/docs-guides.ts test/node-version.ts test/install.ts test/release-workflow.ts test/action.ts",
+    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/docs-guides.ts test/node-version.ts test/install.ts test/release-workflow.ts test/action.ts test/supply-chain.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format .",
