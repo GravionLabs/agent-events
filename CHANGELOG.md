@@ -5,6 +5,12 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.1] — 2026-11-18
+
+### Bug Fixes
+- **deps**: 7-day minimum release age (#74)
+
+
 ## [0.2.0] — 2026-11-10
 
 ### Bug Fixes
@@ -27,6 +33,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **adr**: Binding contract and envelope stamping, draft mcp binding
 - **adr**: Renumber binding contract ADR to 0004 (#58)
 - Guides for bindings, writers and readers, glossary (#45) (#60)
+- Update CHANGELOG.md for v0.2.0 [skip ci]
 
 
 ### Features
