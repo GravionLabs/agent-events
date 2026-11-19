@@ -1,6 +1,6 @@
 # ADR 0004: Binding contract and envelope stamping
 
-- Status: Proposed
+- Status: Proposed; superseded in part by [ADR 0005](0005-run-commands-as-the-inbound-counterpart-of-events.md) (non-goal "No back channel", for runs)
 - Date: 2026-11-09
 - Related: [ADR 0001](0001-general-core-with-profiles-and-bindings.md), [bindings/jsonl-file.md](../../bindings/jsonl-file.md), [bindings/mcp.md](../../bindings/mcp.md)
 
