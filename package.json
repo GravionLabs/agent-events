@@ -41,7 +41,7 @@
     "ajv-formats": "3.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.0.0",
+    "@biomejs/biome": "^2.6.8",
     "@types/node": "^26.0.0",
     "git-cliff": "^2.14.2",
     "typescript": "^5.9.0"
