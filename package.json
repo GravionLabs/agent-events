@@ -37,7 +37,7 @@
     "changelog": "git-cliff -c cliff.toml -o CHANGELOG.md --tag v$npm_package_version"
   },
   "dependencies": {
-    "ajv": "8.17.1",
+    "ajv": "8.18.0",
     "ajv-formats": "3.0.1"
   },
   "devDependencies": {
