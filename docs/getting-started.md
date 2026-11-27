@@ -165,13 +165,13 @@ if (flag === '--follow') watchFile(file, { interval: 500 }, show)
 
 ## Worked example: two repositories and a CI run
 
-One machine, one directory, three runs: a delivery loop in `example/api`, an agent working in a worktree of `example/web`, and a script that polls the CI of `example/api` after the merge and writes a run **on behalf of CI**. CI itself writes nothing into the directory: the script is the writer of that run, and its `origin` says where the script ran. The event types beyond the core (`merged`, `ci.run.completed`, `publish-ok`) are [events in use](profiles.md#events-in-use-deliver-and-ci).
+One machine, one directory, three runs: a delivery loop in `example/api`, an agent working in a worktree of `example/web`, and a script that polls the CI of `example/api` after the merge and writes a run **on behalf of CI**. CI itself writes nothing into the directory: the script is the writer of that run, and its `origin` says where the script ran. The event types beyond the core (`deliver.merged`, `ci.run.completed`, `ci.publish.ok`) are [events in use](profiles.md#events-in-use-deliver-and-ci).
 
 `0193700a-1c00-7a10-8f00-00000000000a.jsonl`, the loop:
 
 ```jsonl
-{"v":1,"seq":1,"ts":"2026-11-27T09:00:00Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"run.started","tone":"neutral","profiles":[],"host":{},"origin":{"repo":"example/api","branch":"main","worktree":"/home/dev/api","host":"build-box"},"subject":{"kind":"milestone","id":"M3","title":"M3"}}
-{"v":1,"seq":2,"ts":"2026-11-27T09:20:00Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"merged","tone":"success","repo":"example/api","issue":12,"pr":"https://example.com/example/api/pull/14","risk":"low"}
+{"v":1,"seq":1,"ts":"2026-11-27T09:00:00Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"run.started","tone":"neutral","profiles":["deliver@2"],"host":{},"origin":{"repo":"example/api","branch":"main","worktree":"/home/dev/api","host":"build-box"},"subject":{"kind":"milestone","id":"M3","title":"M3"}}
+{"v":1,"seq":2,"ts":"2026-11-27T09:20:00Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"deliver.merged","tone":"success","deliver":{"repo":"example/api","issue":12,"pr":"https://example.com/example/api/pull/14","risk":"low"}}
 {"v":1,"seq":3,"ts":"2026-11-27T09:20:01Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"run.finished","tone":"success","outcome":"succeeded"}
 ```
 
@@ -187,7 +187,7 @@ One machine, one directory, three runs: a delivery loop in `example/api`, an age
 ```jsonl
 {"v":1,"seq":1,"ts":"2026-11-27T09:25:00Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"run.started","tone":"info","profiles":["ci@1"],"host":{},"origin":{"repo":"example/api","branch":"main","worktree":"/home/dev/api","host":"build-box"},"subject":{"kind":"commit","id":"4f2a9c1d8e7b6a5f4c3d2e1f0a9b8c7d6e5f4a3b","title":"example/api@4f2a9c1","url":"https://example.com/example/api/commit/4f2a9c1d8e7b6a5f4c3d2e1f0a9b8c7d6e5f4a3b"}}
 {"v":1,"seq":2,"ts":"2026-11-27T09:31:00Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"ci.run.completed","tone":"success","ci":{"name":"release","conclusion":"success","url":"https://example.com/example/api/actions/runs/101"}}
-{"v":1,"seq":3,"ts":"2026-11-27T09:31:01Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"publish-ok","tone":"success","ci":{"tag":"v1.4.0","release":"https://example.com/example/api/releases/tag/v1.4.0"}}
+{"v":1,"seq":3,"ts":"2026-11-27T09:31:01Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"ci.publish.ok","tone":"success","ci":{"tag":"v1.4.0","release":"https://example.com/example/api/releases/tag/v1.4.0"}}
 {"v":1,"seq":4,"ts":"2026-11-27T09:31:02Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"run.finished","tone":"success","outcome":"succeeded"}
 ```
 

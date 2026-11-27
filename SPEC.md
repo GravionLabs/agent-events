@@ -124,7 +124,7 @@ A binding MAY require `origin` and say how a writer derives each field, as [json
 
 ## Profiles
 
-A profile adds types, fields, tone rules and state for one domain. Types are `<profile>.<name>` (`deliver.release.updated`); fields sit under an object of the same name (`"deliver": {...}`). A run declares its profiles in `run.started` as `<name>@<major>` (`["deliver@1"]`; name `[a-z][a-z0-9-]*`). A run MAY add `profileSchemas`, an object from such a key to the `https://` URL of that profile's JSON Schema, so a validator can find it; a key not in `profiles` is a validator note, not an error. Readers never need the schema and ignore profiles they do not know. Profiles live with their owner, not in this repository.
+A profile adds types, fields, tone rules and state for one domain. Types are `<profile>.<name>` (`deliver.merged`); fields sit under an object of the same name (`"deliver": {...}`). A run declares its profiles in `run.started` as `<name>@<major>` (`["deliver@2"]`; name `[a-z][a-z0-9-]*`). A run MAY add `profileSchemas`, an object from such a key to the `https://` URL of that profile's JSON Schema, so a validator can find it; a key not in `profiles` is a validator note, not an error. Readers never need the schema and ignore profiles they do not know. Profiles live with their owner, not in this repository.
 
 ## Displays are core readers
 

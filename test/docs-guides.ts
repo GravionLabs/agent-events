@@ -370,20 +370,73 @@ describe('profile guide: deliver and ci events', () => {
   it('names every event type and shows it in a valid run', () => {
     const types = runs.flatMap((r) => r.events.map((e) => e.type))
     for (const t of [
-      'merged',
-      'handover',
-      'aside',
-      'milestone-done',
+      'deliver.merged',
+      'deliver.handover',
+      'deliver.aside',
+      'deliver.milestone.done',
       'ci.run.completed',
-      'publish-ok',
-      'publish-failed',
+      'ci.publish.ok',
+      'ci.publish.failed',
     ]) {
       assert.ok(doc.includes(`| \`${t}\` |`), t)
-      if (t !== 'publish-ok') assert.ok(types.includes(t), t)
+      if (t !== 'ci.publish.ok') assert.ok(types.includes(t), t)
     }
     for (const { file } of runs) {
       const v = validate(file)
       assert.equal(v.status, 0, v.stdout + v.stderr)
+    }
+  })
+})
+
+describe('deliver and ci examples follow the profile rule', () => {
+  for (const page of ['docs/profiles.md', 'docs/getting-started.md']) {
+    it(`${page}: declared profiles, prefixed types and reasons, fields under the profile`, () => {
+      const { runs } = exampleRuns(read(page))
+      const declared = new Set<string>()
+      for (const { events } of runs) {
+        const profiles: string[] = events[0].profiles
+        const names = profiles.map((p) => p.split('@')[0] as string)
+        for (const p of profiles) declared.add(p)
+        for (const e of events) {
+          const profile = names.find((n) => e.type.startsWith(`${n}.`))
+          if (profile) assert.equal(typeof e[profile], 'object', e.type)
+          // no field of a profile at the top level
+          for (const f of ['repo', 'issue', 'pr', 'risk', 'hold', 'milestone', 'tag', 'job'])
+            assert.ok(!(f in e), `${e.type}: ${f}`)
+          // the core `attention` of a run without a profile keeps its own reason
+          if (names.length && e.reason)
+            assert.ok(
+              names.some((n) => e.reason.startsWith(`${n}.`)),
+              `${e.type}: ${e.reason}`,
+            )
+          if (/\.(handover|aside)$/.test(e.type)) assert.ok(e.reason && e.text, e.type)
+        }
+        // a run with a profile type declares that profile
+        for (const e of events)
+          for (const n of ['deliver', 'ci'])
+            if (e.type.startsWith(`${n}.`)) assert.ok(names.includes(n), e.type)
+      }
+      assert.deepEqual([...declared].sort(), ['ci@1', 'deliver@2'])
+    })
+  }
+
+  it('no page shows an old name', () => {
+    // reason codes such as `ci.publish-failed` are not event names
+    const old =
+      /(?<![.\w-])(milestone-done|publish-ok|publish-failed)(?![\w-])|`(merged|handover|aside)`(?= \||, `ci\.)|"type":"(merged|handover|aside)"/
+    const markdown = (dir: string): string[] =>
+      readdirSync(join(root, dir), { withFileTypes: true }).flatMap((f) => {
+        if (['node_modules', '.vitepress'].includes(f.name)) return []
+        const path = `${dir}/${f.name}`
+        if (f.isDirectory()) return markdown(path)
+        return f.name.endsWith('.md') ? [path] : []
+      })
+    const pages = ['docs', 'bindings', 'site'].flatMap(markdown)
+    for (const page of [...pages, 'README.md', 'SPEC.md']) {
+      assert.doesNotMatch(read(page), old, page)
+      // an ADR is a record of its time
+      if (!page.startsWith('docs/adr/'))
+        assert.doesNotMatch(read(page), /deliver@1|deliver\.release\.|rcVersion/, page)
     }
   })
 })
