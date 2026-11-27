@@ -1,6 +1,6 @@
 # ADR 0006: One run directory per user, origin in run.started, retention per repository
 
-- Status: Proposed
+- Status: Accepted (2026-11-27)
 - Date: 2026-11-27
 - Issues: #90
 - Supersedes: [ADR 0001](0001-general-core-with-profiles-and-bindings.md) in part (location and retention of the `jsonl-file` binding)
@@ -23,11 +23,13 @@ Writers write to one directory per user:
 
 | Platform | Default directory |
 | :-- | :-- |
-| Linux | `$XDG_STATE_HOME/agent-events/`, else `~/.local/state/agent-events/` |
+| Linux | `$XDG_STATE_HOME/agent-events/` when `XDG_STATE_HOME` is set to an absolute path, else `~/.local/state/agent-events/` |
 | macOS | the same XDG rule as Linux |
 | Windows | `%LOCALAPPDATA%\agent-events\` |
 
-`AGENT_EVENTS_DIR` stays the override: when it is set and not empty, writers and readers use that directory and nothing else.
+A relative or empty `XDG_STATE_HOME` is ignored, as the XDG Base Directory specification requires.
+
+`AGENT_EVENTS_DIR` stays the override: when it is set and not empty, writers and readers use that directory as the shared directory in place of the default. It replaces only the shared directory; readers still read the legacy directory (see Transition).
 
 ### Origin
 
@@ -48,11 +50,13 @@ Run ids MUST be globally unique in the shared directory, because runs of all rep
 
 ### Retention
 
-Retention counts per origin repository, not per directory. A writer counts and deletes only the finished or abandoned runs of its own `origin.repo`: at most 100 per repository, and such runs older than 30 days MAY go. Runs with an `origin` but without `origin.repo` form one group of their own, which only writers without a repository prune. A running run and the runs of other repositories are never deleted. Readers never delete. Runs without `origin` are judged by the rule of ADR 0001 (older than 7 days MAY go, at most 100 of them in the directory).
+Retention counts per origin repository, not per directory. A writer counts and deletes only the finished or abandoned runs of its own `origin.repo`: at most 100 per repository, and such runs older than 30 days MAY go. Runs with an `origin` but without `origin.repo` form one group of their own, which only writers without a repository prune (owner decision 2026-11-27): every writer outside a git repository, in any directory, shares this one group of at most 100 runs. A running run and the runs of other repositories are never deleted. Readers never delete. Runs without `origin` are judged by the rule of ADR 0001 (older than 7 days MAY go, at most 100 of them in the directory).
 
 ### Transition
 
-Writers write the shared directory only. Without `AGENT_EVENTS_DIR`, readers also read the legacy directory `<git-common-dir>/.agents/events/` of the repositories they follow, and deduplicate by `(run, seq)`, until the next minor version after the release that introduces the shared directory. Below 1.0 a breaking change raises the minor version, so that release is 0.3 and the legacy directory leaves the binding with 0.4.
+Writers write the shared directory only. Readers also read the legacy directory `<git-common-dir>/.agents/events/` of the repositories they follow, whether or not `AGENT_EVENTS_DIR` is set (owner decision 2026-11-27), and deduplicate by `(run, seq)`, until the next minor version after the release that introduces the shared directory. Below 1.0 a breaking change raises the minor version, so that release is 0.3 and the legacy directory leaves the binding with 0.4.
+
+Writers delete nothing in a legacy directory, and readers never delete (owner decision 2026-11-27). The files in `<git-common-dir>/.agents/events/` therefore remain after the transition; a person may remove them by hand.
 
 ## Consequences
 
@@ -67,6 +71,8 @@ Writers write the shared directory only. Without `AGENT_EVENTS_DIR`, readers als
   - `origin` holds absolute paths and a host name. The directory belongs to one user; whoever copies run files elsewhere publishes them too.
   - `owner/repo` does not name the forge: equal names on two forges share one retention group.
   - Runs of repositories that no writer visits again stay until a person removes them.
+  - Legacy directories are never pruned after the transition: their files stay in `.git` until a person removes them.
+  - All writers outside a git repository share one retention group of at most 100 runs, so writers of other repositories (GravionLabs/skills#1078, GravionLabs/poimen#1417) implement this group too.
   - Processes that do not share a home directory (containers, a second user) need `AGENT_EVENTS_DIR` to meet in one directory.
 
 ## Alternatives

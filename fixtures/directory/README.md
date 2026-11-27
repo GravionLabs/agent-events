@@ -7,7 +7,8 @@ What the [`jsonl-file` binding](../../bindings/jsonl-file.md) says about a direc
 ```text
 fixtures/directory/<case>/
   shared/<run>.jsonl   the shared directory (per user, or AGENT_EVENTS_DIR)
-  legacy/<run>.jsonl   the legacy directory <git-common-dir>/.agents/events/, when the case has one
+  legacy/<run>.jsonl   the legacy directory <git-common-dir>/.agents/events/, when the case has one;
+                       read with or without AGENT_EVENTS_DIR
   expected.json
 ```
 

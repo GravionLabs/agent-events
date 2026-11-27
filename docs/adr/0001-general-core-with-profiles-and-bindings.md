@@ -1,6 +1,6 @@
 # ADR 0001: A general core with profiles and bindings
 
-- Status: Accepted. The location and retention parts of the `jsonl-file` binding (Bindings) are superseded by [ADR 0006](0006-one-run-directory-per-user.md) (Proposed)
+- Status: Accepted. The location and retention parts of the `jsonl-file` binding (Bindings) are superseded by [ADR 0006](0006-one-run-directory-per-user.md)
 - Date: 2026-11-08
 - Related: GravionLabs/skills ADR 0001 and ADR 0002, GravionLabs/skills#450
 

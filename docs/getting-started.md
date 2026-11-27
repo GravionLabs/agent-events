@@ -147,4 +147,4 @@ show()
 if (flag === '--follow') watchFile(file, { interval: 500 }, show)
 ```
 
-`fold` skips the incomplete last line, ignores lines that are not JSON, and deduplicates by `seq`. Resuming after `seq` N is, for this binding, skipping the first N events of the replay. Run files live in one directory per user (`$XDG_STATE_HOME/agent-events/`, else `~/.local/state/agent-events/`; Windows `%LOCALAPPDATA%\agent-events\`), or in `AGENT_EVENTS_DIR` when it is set. Without the variable, a reader also reads the old `<git-common-dir>/.agents/events/` until 0.4 ([legacy directory](../bindings/jsonl-file.md#legacy-directory)).
+`fold` skips the incomplete last line, ignores lines that are not JSON, and deduplicates by `seq`. Resuming after `seq` N is, for this binding, skipping the first N events of the replay. Run files live in one directory per user (`$XDG_STATE_HOME/agent-events/`, else `~/.local/state/agent-events/`; Windows `%LOCALAPPDATA%\agent-events\`), or in `AGENT_EVENTS_DIR` when it is set. A reader also reads the old `<git-common-dir>/.agents/events/` until 0.4, with or without the variable ([legacy directory](../bindings/jsonl-file.md#legacy-directory)).

@@ -26,6 +26,8 @@ test('binding states file, lifecycle, retention and location rules', () => {
     'globally unique',
     '<git-common-dir>/.agents/events/',
     'AGENT_EVENTS_DIR',
+    'whether or not `AGENT_EVENTS_DIR` is set',
+    'replaces only the shared directory',
     '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$',
   ]) {
     assert.ok(binding.toLowerCase().includes(needle.toLowerCase()), needle)

@@ -1,6 +1,6 @@
 # Binding: jsonl-file
 
-The first binding of the agent-events core ([SPEC.md](../SPEC.md)). The core is the format; this binding says how events are stored and found. Reasons: [ADR 0001](../docs/adr/0001-general-core-with-profiles-and-bindings.md); location, origin and retention: [ADR 0006](../docs/adr/0006-one-run-directory-per-user.md) (Proposed). The key words MUST, SHOULD and MAY are used as in RFC 2119.
+The first binding of the agent-events core ([SPEC.md](../SPEC.md)). The core is the format; this binding says how events are stored and found. Reasons: [ADR 0001](../docs/adr/0001-general-core-with-profiles-and-bindings.md); location, origin and retention: [ADR 0006](../docs/adr/0006-one-run-directory-per-user.md). The key words MUST, SHOULD and MAY are used as in RFC 2119.
 
 ## File
 
@@ -66,7 +66,7 @@ Writers and readers share one directory per user:
 | Linux and macOS | `$XDG_STATE_HOME/agent-events/` when `XDG_STATE_HOME` is set to an absolute path, else `~/.local/state/agent-events/` |
 | Windows | `%LOCALAPPDATA%\agent-events\` |
 
-- The environment variable `AGENT_EVENTS_DIR` overrides it with an absolute directory path. When it is set and not empty, writers and readers use it and nothing else, no legacy directory either.
+- The environment variable `AGENT_EVENTS_DIR` overrides it with an absolute directory path. When it is set and not empty, writers and readers use it in place of the default. It replaces only the shared directory: readers still read the legacy directory (below).
 - This directory (default or override) is the *shared directory*. A run file is `<dir>/<run>.jsonl`.
 - A writer creates the directory when it does not exist. Writers write the shared directory only.
 - A writer outside a git repository writes to the shared directory too, and omits `origin.repo`.
@@ -75,9 +75,9 @@ Writers and readers share one directory per user:
 
 Up to 0.2, run files lived in `<git-common-dir>/.agents/events/`, one directory per repository.
 
-- Without `AGENT_EVENTS_DIR`, a reader also reads this directory of every repository it follows.
+- A reader also reads this directory of every repository it follows, whether or not `AGENT_EVENTS_DIR` is set.
 - A run is listed once, also when both directories hold its file. The reader deduplicates its events by `(run, seq)`, taking the event of the shared directory when both have the `seq`, and folds them in `seq` order. The age of the run is that of the newer file.
-- This holds until the next minor version after the release that introduces the shared directory: readers of 0.3 read the legacy directory, from 0.4 it is no longer part of this binding.
+- This holds until the next minor version after the release that introduces the shared directory: readers of 0.3 read the legacy directory, from 0.4 it is no longer part of this binding. Its files remain, since neither writers nor readers delete there; a person may remove them by hand.
 
 ## Directory fixtures
 
