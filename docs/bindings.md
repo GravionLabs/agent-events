@@ -4,6 +4,30 @@ The core ([SPEC.md](../SPEC.md)) is the format. A **binding** carries it over a 
 
 A binding is one document in `bindings/`. It does not change the core. If a question does not apply to the transport, the binding says so instead of leaving the section out.
 
+## Which binding
+
+| Binding | State | Use it when | Writer |
+| :-- | :-- | :-- | :-- |
+| [`jsonl-file`](../bindings/jsonl-file.md) | specified | writer and reader share a machine and a user: scripts, hooks, loops, local displays. No process has to run besides the writer | the producing process |
+| [`mcp`](../bindings/mcp.md) | draft | the producer is an agent that speaks MCP and should not manage files or count `seq`, or a reader connects to a server and subscribes | the MCP server |
+| relay | planned, no binding document yet ([#88](https://github.com/GravionLabs/agent-events/issues/88)) | a reader follows the runs of several machines, or of CI, in one place | unchanged: the writers of the mirrored files |
+
+Start with `jsonl-file`. On one machine, following the files (or an MCP subscription) already gives live updates, and a message bus adds nothing.
+
+The relay is a proposal: a separate process follows `jsonl-file` streams and publishes each event unchanged to a bus with a durable log, so a reader can replay a run from `seq` N. The file stays the source of truth, writers do not change, and the bus assigns no `seq`. Names and the choice of bus are open.
+
+Results of CI need no binding of their own: a script that polls CI writes an ordinary run [on behalf of CI](profiles.md#ci-events-written-on-behalf-of-ci).
+
+### Who aggregates
+
+The binding has no daemon: nothing owns the directory, and every reader reads the files itself. One directory per user already brings the runs of all repositories together, and `origin` tells them apart.
+
+Aggregating further, across users, machines or containers, is the job of an agent host, such as poimen-server: a program that runs anyway reads the directory as one more reader and offers the runs to its clients. On one machine, processes that do not share a home directory meet by setting `AGENT_EVENTS_DIR` to the same directory. Whoever passes events on keeps `run` and `seq`, so readers can deduplicate by `(run, seq)`, and remembers that `origin` holds paths and a host name. The `mcp` draft describes a server that writes its own runs; it does not yet say how a server offers runs another writer wrote.
+
+### Run commands
+
+Events flow out of a run. [ADR 0005](adr/0005-run-commands-as-the-inbound-counterpart-of-events.md) (accepted) adds the inbound direction: **commands** such as `run.stop` or `attention.answer`, which a controller submits through the binding and only the writer of the run consumes. The writer reports the outcome as events of the same run, so a command never writes events itself. The ADR describes the `jsonl-file` form (a directory `<run>.commands/` next to the run file). [SPEC.md](../SPEC.md), the schemas and the binding documents do not define commands yet; the `mcp` draft has no command tool, and a relay carrying commands back is only an option of the proposal.
+
 ## Roles
 
 - A **producer** emits the body of an event: `type`, `tone`, `needsYou` and the fields of the type.
@@ -41,7 +65,7 @@ These come from the core and ADR 0004; a binding states how it meets them, it do
 - Within a run events are ordered by `seq`, never by `ts`. Between runs there is no order. A binding MUST NOT reorder the events of a run, or it MUST let a reader restore the order by `seq`.
 - A binding MAY deliver an event more than once. Readers deduplicate by `(run, seq)`; the fold already ignores a `seq` that is not above the last folded one.
 - `abandoned` is a judgment of the reader at its clock, not final: a later event revives the run. Only `run.finished` ends it. The core default stale time is one hour; a binding MAY shorten it or add signals. A writer SHOULD emit `run.heartbeat` at least every 15 minutes while a run is running and nothing else is emitted.
-- There is no back channel: `needsYou` signals, the answer happens elsewhere.
+- Events are no back channel: `needsYou` signals, a reader never writes into a run. For acting on a run see [Run commands](#run-commands).
 
 ## Worked example: jsonl-file
 
