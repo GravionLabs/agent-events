@@ -99,7 +99,20 @@ Writers SHOULD finish every task (`task.finished`) before `run.finished`, so the
 
 ## Origin
 
-`origin` of `run.started` is optional and says where the run comes from: `repo` (`owner/repo`, or an absolute path), `branch`, `worktree` (absolute path) and `host`, all optional strings. `origin.host` is the host name of the machine; it differs from the `host` map of display keys above. A binding MAY require `origin`, as [jsonl-file](bindings/jsonl-file.md) does.
+`origin` of `run.started` is optional and says where the run comes from. All its fields are optional strings:
+
+| Field | Meaning |
+| :-- | :-- |
+| `origin.repo` | the repository: `owner/repo`, or an absolute path when no remote names one |
+| `origin.branch` | the branch |
+| `origin.worktree` | the absolute path of the worktree |
+| `origin.host` | the host name of the machine; it differs from the `host` map of display keys above |
+
+A binding MAY require `origin` and say how a writer derives each field, as [jsonl-file](bindings/jsonl-file.md#origin) does. A reader accepts runs without `origin` or with only some of its fields. It filters and groups runs by comparing the strings. The run state has no `origin`: a reader takes it from `run.started`.
+
+## Run ids
+
+`run` identifies a run. Run ids SHOULD be globally unique, across repositories, hosts and time: a writer SHOULD use a ULID or a UUIDv7. A binding that brings the runs of several repositories or hosts together in one place MUST require unique ids or qualify them; [jsonl-file](bindings/jsonl-file.md#file), with one directory per user, requires them. The characters of an id are limited (see Security).
 
 ## Reason and text
 
@@ -111,7 +124,7 @@ Writers SHOULD finish every task (`task.finished`) before `run.finished`, so the
 
 ## Profiles
 
-A profile adds types, fields, tone rules and state for one domain. Types are `<profile>.<name>` (`deliver.release.updated`); fields sit under an object of the same name (`"deliver": {...}`). A run declares its profiles in `run.started` as `<name>@<major>` (`["deliver@1"]`; name `[a-z][a-z0-9-]*`). A run MAY add `profileSchemas`, an object from such a key to the `https://` URL of that profile's JSON Schema, so a validator can find it; a key not in `profiles` is a validator note, not an error. Readers never need the schema and ignore profiles they do not know. Profiles live with their owner, not in this repository.
+A profile adds types, fields, tone rules and state for one domain. Types are `<profile>.<name>` (`deliver.merged`); fields sit under an object of the same name (`"deliver": {...}`). A run declares its profiles in `run.started` as `<name>@<major>` (`["deliver@2"]`; name `[a-z][a-z0-9-]*`). A run MAY add `profileSchemas`, an object from such a key to the `https://` URL of that profile's JSON Schema, so a validator can find it; a key not in `profiles` is a validator note, not an error. Readers never need the schema and ignore profiles they do not know. Profiles live with their owner, not in this repository.
 
 ## Displays are core readers
 

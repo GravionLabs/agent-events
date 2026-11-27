@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from 'node:fs'
 import { hostname, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -281,7 +288,189 @@ describe('getting-started reader', () => {
   })
 })
 
+/** Writes every jsonl block of a doc as <run>.jsonl into a new directory. */
+function exampleRuns(doc: string) {
+  const dir = mkdtempSync(join(tmpdir(), 'ae-example-'))
+  const runs = [...doc.matchAll(/```jsonl\n([\s\S]*?)```/g)].map((m) => {
+    const text = m[1] as string
+    const events = text
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l))
+    const file = join(dir, `${events[0].run}.jsonl`)
+    writeFileSync(file, text)
+    return { file, events }
+  })
+  return { dir, runs }
+}
+
+describe('worked example: two repositories and a CI run', () => {
+  const { dir, runs } = exampleRuns(guide)
+  writeFileSync(join(dir, 'older-writer.txt'), 'not a run file')
+  const scripts = mkdtempSync(join(tmpdir(), 'ae-runs-'))
+  const script = join(scripts, 'runs.mjs')
+  writeFileSync(
+    script,
+    block(guide, 'runs.mjs').replace("'agent-events'", JSON.stringify(join(root, 'dist/index.js'))),
+  )
+  const list = (...filter: string[]) => {
+    const r = spawnSync(process.execPath, [script, dir, ...filter], { encoding: 'utf8' })
+    assert.equal(r.status, 0, r.stderr)
+    // run ids differ in their last character: a loop, b agent, c CI
+    return r.stdout
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((l) => l.replace(/^\S+([abc]) /, '$1 '))
+  }
+
+  it('has three valid runs of two repositories, one written for CI', () => {
+    assert.equal(runs.length, 3)
+    for (const { file } of runs) {
+      const v = validate(file)
+      assert.equal(v.status, 0, v.stdout + v.stderr)
+    }
+    assert.deepEqual(
+      runs.map((r) => r.events[0].origin.repo),
+      ['example/api', 'example/web', 'example/api'],
+    )
+    assert.deepEqual(runs[2]?.events[0].profiles, ['ci@1'])
+  })
+  it('lists all runs without a filter', () => {
+    assert.equal(list().length, 3)
+  })
+  it('filters by origin.repo', () => {
+    assert.deepEqual(list('repo', 'example/api'), [
+      'a example/api finished',
+      'c example/api finished',
+    ])
+    const web = list('repo', 'example/web')
+    assert.equal(web.length, 1)
+    assert.match(web[0] as string, /^b example\/web (running|abandoned) needs you$/)
+  })
+  it('filters by origin.host and lists nothing for an unknown value', () => {
+    assert.equal(list('host', 'build-box').length, 3)
+    assert.deepEqual(list('repo', 'example/none'), [])
+  })
+  it('skips an incomplete run.started and matches a run without origin only unfiltered', () => {
+    const head = '{"v":1,"seq":1,"ts":"2026-11-27T09:00:00Z",'
+    writeFileSync(join(dir, 'partial.jsonl'), `${head}"run":"partial"`)
+    writeFileSync(
+      join(dir, 'old.jsonl'),
+      `not json\n${head}"run":"old","type":"run.started","tone":"neutral","profiles":[],"host":{}}\n`,
+    )
+    assert.equal(list().length, 4)
+    assert.equal(list('host', 'build-box').length, 3)
+  })
+})
+
+describe('profile guide: deliver and ci events', () => {
+  const doc = read('docs/profiles.md')
+  const { runs } = exampleRuns(doc)
+  it('names every event type and shows it in a valid run', () => {
+    const types = runs.flatMap((r) => r.events.map((e) => e.type))
+    for (const t of [
+      'deliver.merged',
+      'deliver.handover',
+      'deliver.aside',
+      'deliver.milestone.done',
+      'ci.run.completed',
+      'ci.publish.ok',
+      'ci.publish.failed',
+    ]) {
+      assert.ok(doc.includes(`| \`${t}\` |`), t)
+      if (t !== 'ci.publish.ok') assert.ok(types.includes(t), t)
+    }
+    for (const { file } of runs) {
+      const v = validate(file)
+      assert.equal(v.status, 0, v.stdout + v.stderr)
+    }
+  })
+})
+
+describe('deliver and ci examples follow the profile rule', () => {
+  for (const page of ['docs/profiles.md', 'docs/getting-started.md']) {
+    it(`${page}: declared profiles, prefixed types and reasons, fields under the profile`, () => {
+      const { runs } = exampleRuns(read(page))
+      const declared = new Set<string>()
+      for (const { events } of runs) {
+        const profiles: string[] = events[0].profiles
+        const names = profiles.map((p) => p.split('@')[0] as string)
+        for (const p of profiles) declared.add(p)
+        for (const e of events) {
+          const profile = names.find((n) => e.type.startsWith(`${n}.`))
+          if (profile) assert.equal(typeof e[profile], 'object', e.type)
+          // no field of a profile at the top level
+          for (const f of ['repo', 'issue', 'pr', 'risk', 'hold', 'milestone', 'tag', 'job'])
+            assert.ok(!(f in e), `${e.type}: ${f}`)
+          // the core `attention` of a run without a profile keeps its own reason
+          if (names.length && e.reason)
+            assert.ok(
+              names.some((n) => e.reason.startsWith(`${n}.`)),
+              `${e.type}: ${e.reason}`,
+            )
+          if (/\.(handover|aside)$/.test(e.type)) assert.ok(e.reason && e.text, e.type)
+        }
+        // a run with a profile type declares that profile
+        for (const e of events)
+          for (const n of ['deliver', 'ci'])
+            if (e.type.startsWith(`${n}.`)) assert.ok(names.includes(n), e.type)
+      }
+      assert.deepEqual([...declared].sort(), ['ci@1', 'deliver@2'])
+    })
+  }
+
+  it('no page shows an old name', () => {
+    // reason codes such as `ci.publish-failed` are not event names
+    const old =
+      /(?<![.\w-])(milestone-done|publish-ok|publish-failed)(?![\w-])|`(merged|handover|aside)`(?= \||, `ci\.)|"type":"(merged|handover|aside)"/
+    const markdown = (dir: string): string[] =>
+      readdirSync(join(root, dir), { withFileTypes: true }).flatMap((f) => {
+        if (['node_modules', '.vitepress'].includes(f.name)) return []
+        const path = `${dir}/${f.name}`
+        if (f.isDirectory()) return markdown(path)
+        return f.name.endsWith('.md') ? [path] : []
+      })
+    const pages = ['docs', 'bindings', 'site'].flatMap(markdown)
+    for (const page of [...pages, 'README.md', 'SPEC.md']) {
+      assert.doesNotMatch(read(page), old, page)
+      // an ADR is a record of its time
+      if (!page.startsWith('docs/adr/'))
+        assert.doesNotMatch(read(page), /deliver@1|deliver\.release\.|rcVersion/, page)
+    }
+  })
+})
+
+describe('the site mirrors the repository', () => {
+  const pages = ['docs', 'bindings'].flatMap((d) =>
+    readdirSync(join(root, d))
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => `${d}/${f}`),
+  )
+  for (const page of pages) {
+    it(`site/${page} only includes ${page}`, () => {
+      assert.equal(read(`site/${page}`).trim(), `<!--@include: ../../${page}-->`)
+    })
+  }
+  it('site/SPEC.md only includes SPEC.md', () => {
+    assert.equal(read('site/SPEC.md').trim(), '<!--@include: ../SPEC.md-->')
+  })
+})
+
 describe('docs structure', () => {
+  it('SPEC.md names the origin fields and requires unique run ids', () => {
+    const spec = read('SPEC.md')
+    for (const f of ['repo', 'branch', 'worktree', 'host'])
+      assert.ok(spec.includes(`| \`origin.${f}\` |`), f)
+    assert.match(spec, /## Run ids[\s\S]*SHOULD be globally unique/)
+  })
+
+  it('the binding guide says when to use which binding and who aggregates', () => {
+    const doc = read('docs/bindings.md')
+    for (const h of ['## Which binding', '### Who aggregates', '### Run commands'])
+      assert.ok(doc.includes(h), h)
+  })
+
   it('SPEC.md starts with a glossary of the nine terms', () => {
     const spec = read('SPEC.md')
     assert.ok(spec.indexOf('## Glossary') < spec.indexOf('## Model'))

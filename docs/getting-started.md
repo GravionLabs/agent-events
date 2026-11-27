@@ -4,6 +4,20 @@ Report a run from any harness and read it back, using the [`jsonl-file`](../bind
 
 An event has an envelope (`v`, `seq`, `ts`, `run`) and a body (`type`, `tone`, the fields of the type). In this binding the process that appends is also the writer, so it sets the envelope. A run starts with `run.started` and ends with `run.finished`. Events carry no secrets, prompts or model output.
 
+## Where run files live
+
+All runs of one user, of every repository, go into one directory:
+
+| Platform | Directory |
+| :-- | :-- |
+| Linux and macOS | `$XDG_STATE_HOME/agent-events/` when `XDG_STATE_HOME` is an absolute path, else `~/.local/state/agent-events/` |
+| Windows | `%LOCALAPPDATA%\agent-events\` |
+| any, when `AGENT_EVENTS_DIR` is set | the absolute directory it names |
+
+A run is the file `<run>.jsonl` in that directory. The run id is globally unique (ULID, UUIDv7 or the like), and `run.started` says in `origin` which repository, branch, worktree and machine the run comes from. A writer outside a git repository writes there too, without `origin.repo`. Writers delete old runs of their own repository only ([retention](../bindings/jsonl-file.md#retention)).
+
+Up to 0.2, run files lived in `<git-common-dir>/.agents/events/` of each repository. Writers no longer write there. A reader also reads that directory of the repositories it follows until 0.4, with or without `AGENT_EVENTS_DIR` ([legacy directory](../bindings/jsonl-file.md#legacy-directory)).
+
 ## Write from a shell
 
 Source this function, call it for each event. It counts `seq` from the lines already in the file, which is correct because a run has one writer.
@@ -58,7 +72,7 @@ ae_emit run.finished success '"outcome":"succeeded"'
 
 Values you put into the members must already be valid JSON (escape quotes). Prefer reason codes (`ci-red`) over free text.
 
-`ae_events_dir` is the directory of the [binding](../bindings/jsonl-file.md#location): one per user, for the runs of all repositories. `ae_origin` says where a run comes from; it works outside a git repository too, and then leaves `repo`, `branch` and `worktree` out.
+`ae_events_dir` is the [directory of the binding](#where-run-files-live). `ae_origin` says where a run comes from; it works outside a git repository too, and then leaves `repo`, `branch` and `worktree` out.
 
 ## Write from a Claude Code hook
 
@@ -147,4 +161,72 @@ show()
 if (flag === '--follow') watchFile(file, { interval: 500 }, show)
 ```
 
-`fold` skips the incomplete last line, ignores lines that are not JSON, and deduplicates by `seq`. Resuming after `seq` N is, for this binding, skipping the first N events of the replay. Run files live in one directory per user (`$XDG_STATE_HOME/agent-events/`, else `~/.local/state/agent-events/`; Windows `%LOCALAPPDATA%\agent-events\`), or in `AGENT_EVENTS_DIR` when it is set. A reader also reads the old `<git-common-dir>/.agents/events/` until 0.4, with or without the variable ([legacy directory](../bindings/jsonl-file.md#legacy-directory)).
+`fold` skips the incomplete last line, ignores lines that are not JSON, and deduplicates by `seq`. Resuming after `seq` N is, for this binding, skipping the first N events of the replay.
+
+## Worked example: two repositories and a CI run
+
+One machine, one directory, three runs: a delivery loop in `example/api`, an agent working in a worktree of `example/web`, and a script that polls the CI of `example/api` after the merge and writes a run **on behalf of CI**. CI itself writes nothing into the directory: the script is the writer of that run, and its `origin` says where the script ran. The event types beyond the core (`deliver.merged`, `ci.run.completed`, `ci.publish.ok`) are [events in use](profiles.md#events-in-use-deliver-and-ci).
+
+`0193700a-1c00-7a10-8f00-00000000000a.jsonl`, the loop:
+
+```jsonl
+{"v":1,"seq":1,"ts":"2026-11-27T09:00:00Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"run.started","tone":"neutral","profiles":["deliver@2"],"host":{},"origin":{"repo":"example/api","branch":"main","worktree":"/home/dev/api","host":"build-box"},"subject":{"kind":"milestone","id":"M3","title":"M3"}}
+{"v":1,"seq":2,"ts":"2026-11-27T09:20:00Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"deliver.merged","tone":"success","deliver":{"repo":"example/api","issue":12,"pr":"https://example.com/example/api/pull/14","risk":"low"}}
+{"v":1,"seq":3,"ts":"2026-11-27T09:20:01Z","run":"0193700a-1c00-7a10-8f00-00000000000a","type":"run.finished","tone":"success","outcome":"succeeded"}
+```
+
+`0193700a-2d00-7b20-8f00-00000000000b.jsonl`, the agent:
+
+```jsonl
+{"v":1,"seq":1,"ts":"2026-11-27T09:05:00Z","run":"0193700a-2d00-7b20-8f00-00000000000b","type":"run.started","tone":"neutral","profiles":[],"host":{},"origin":{"repo":"example/web","branch":"feat/7-search","worktree":"/home/dev/web-wt-7","host":"build-box"},"subject":{"kind":"task","id":"7","title":"Add search"}}
+{"v":1,"seq":2,"ts":"2026-11-27T09:15:00Z","run":"0193700a-2d00-7b20-8f00-00000000000b","type":"attention","tone":"warning","id":"a1","reason":"ci-red","needsYou":true,"text":"CI is red"}
+```
+
+`0193700f-9e00-7c30-8f00-00000000000c.jsonl`, the CI run:
+
+```jsonl
+{"v":1,"seq":1,"ts":"2026-11-27T09:25:00Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"run.started","tone":"info","profiles":["ci@1"],"host":{},"origin":{"repo":"example/api","branch":"main","worktree":"/home/dev/api","host":"build-box"},"subject":{"kind":"commit","id":"4f2a9c1d8e7b6a5f4c3d2e1f0a9b8c7d6e5f4a3b","title":"example/api@4f2a9c1","url":"https://example.com/example/api/commit/4f2a9c1d8e7b6a5f4c3d2e1f0a9b8c7d6e5f4a3b"}}
+{"v":1,"seq":2,"ts":"2026-11-27T09:31:00Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"ci.run.completed","tone":"success","ci":{"name":"release","conclusion":"success","url":"https://example.com/example/api/actions/runs/101"}}
+{"v":1,"seq":3,"ts":"2026-11-27T09:31:01Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"ci.publish.ok","tone":"success","ci":{"tag":"v1.4.0","release":"https://example.com/example/api/releases/tag/v1.4.0"}}
+{"v":1,"seq":4,"ts":"2026-11-27T09:31:02Z","run":"0193700f-9e00-7c30-8f00-00000000000c","type":"run.finished","tone":"success","outcome":"succeeded"}
+```
+
+A reader lists the directory and filters by one field of `origin` (`repo`, `branch`, `worktree` or `host`), taken from `run.started`:
+
+```js
+// runs.mjs
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fold } from 'agent-events'
+
+const parse = (line) => {
+  try {
+    return JSON.parse(line)
+  } catch {
+    return undefined // a line that is not JSON is skipped
+  }
+}
+const [dir, field, value] = process.argv.slice(2)
+for (const name of readdirSync(dir).sort()) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.jsonl$/.test(name)) continue
+  const text = readFileSync(join(dir, name), 'utf8')
+  const lines = text.split('\n').slice(0, -1) // complete lines only
+  const started = lines.map(parse).find((e) => e?.type === 'run.started')
+  if (!started || (field && started.origin?.[field] !== value)) continue
+  const { run, status, needsYou } = fold(text, new Date())
+  console.log([run, started.origin?.repo ?? '-', status, needsYou ? 'needs you' : ''].join(' ').trim())
+}
+```
+
+```sh
+E=${AGENT_EVENTS_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/agent-events}
+node runs.mjs "$E"                      # all three runs
+node runs.mjs "$E" repo example/api     # the loop and the CI run
+node runs.mjs "$E" repo example/web     # the agent
+node runs.mjs "$E" host build-box       # everything from this machine
+```
+
+- The comparison is on the exact string. Without a remote, `origin.repo` is the absolute path of the repository.
+- A run without `origin` (an older writer), or without the filtered field, matches no filter and appears only in the unfiltered list.
+- To tell the CI run from the loop run of the same repository, look at `profiles` and `subject.kind` of `run.started`, not at `origin`.
+- This reader reads the shared directory only. A complete reader also merges the [legacy directory](../bindings/jsonl-file.md#legacy-directory) of the repositories it follows.
