@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { hostname, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -163,6 +163,91 @@ describe('getting-started writers produce valid runs', () => {
     writeFileSync(file, `${events.map((e) => JSON.stringify(e)).join('\n')}\n`)
     const v = validate(file)
     assert.equal(v.status, 0, v.stdout + v.stderr)
+  })
+})
+
+describe('getting-started location and origin', () => {
+  const git = (cwd: string, ...args: string[]) => {
+    const r = spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8' })
+    assert.equal(r.status, 0, r.stderr)
+  }
+  /** Runs use.sh in cwd and returns the origin of the run.started found in eventsDir. */
+  const originOf = (cwd: string, env: Record<string, string>, eventsDir: string) => {
+    const scripts = mkdtempSync(join(tmpdir(), 'ae-loc-'))
+    writeFileSync(join(scripts, 'writer.sh'), block(guide, 'writer.sh'))
+    const use = block(guide, 'use.sh').replace('./writer.sh', `"${scripts}/writer.sh"`)
+    const r = sh(`cd "${cwd}" && ${use}`, { AE_RUN: 'loc1', ...env })
+    assert.equal(r.status, 0, r.stderr)
+    const file = join(eventsDir, 'loc1.jsonl')
+    const v = validate(file)
+    assert.equal(v.status, 0, v.stdout + v.stderr)
+    return JSON.parse(readFileSync(file, 'utf8').split('\n')[0] as string).origin
+  }
+  const temp = () => realpathSync(mkdtempSync(join(tmpdir(), 'ae-repo-')))
+  const repo = () => {
+    const dir = temp()
+    git(dir, 'init', '--quiet', '--initial-branch=topic')
+    return dir
+  }
+
+  it('writes to ~/.local/state/agent-events by default', () => {
+    const home = temp()
+    originOf(temp(), { HOME: home }, join(home, '.local/state/agent-events'))
+  })
+  it('writes to XDG_STATE_HOME/agent-events when it is set', () => {
+    const state = temp()
+    originOf(temp(), { HOME: temp(), XDG_STATE_HOME: state }, join(state, 'agent-events'))
+  })
+  it('ignores a relative XDG_STATE_HOME', () => {
+    const home = temp()
+    const env = { HOME: home, XDG_STATE_HOME: 'state' }
+    originOf(temp(), env, join(home, '.local/state/agent-events'))
+  })
+  it('names only the host outside a git repository', () => {
+    const dir = temp()
+    const origin = originOf(dir, { AGENT_EVENTS_DIR: dir, GIT_CEILING_DIRECTORIES: tmpdir() }, dir)
+    assert.deepEqual(origin, { host: hostname() })
+  })
+  for (const url of [
+    'https://example.com/example/a.git',
+    'ssh://git@example.com:22/example/a',
+    'git@example.com:example/a.git',
+  ]) {
+    it(`takes owner/repo from the remote ${url}`, () => {
+      const dir = repo()
+      git(dir, 'remote', 'add', 'origin', url)
+      assert.deepEqual(originOf(dir, { AGENT_EVENTS_DIR: dir }, dir), {
+        repo: 'example/a',
+        branch: 'topic',
+        worktree: dir,
+        host: hostname(),
+      })
+    })
+  }
+  for (const url of [undefined, '/srv/git/a.git', 'file:///srv/git/a.git']) {
+    it(`takes the path of the repository with remote ${url}`, () => {
+      const dir = repo()
+      if (url) git(dir, 'remote', 'add', 'origin', url)
+      assert.equal(originOf(dir, { AGENT_EVENTS_DIR: dir }, dir).repo, dir)
+    })
+  }
+  it('escapes quotes and backslashes in a path', () => {
+    const dir = join(temp(), 'a"b\\c')
+    mkdirSync(dir)
+    git(dir, 'init', '--quiet')
+    const events = temp()
+    assert.equal(
+      originOf(dir.replace(/["\\]/g, '\\$&'), { AGENT_EVENTS_DIR: events }, events).worktree,
+      dir,
+    )
+  })
+  it('generates a different run id per writer', () => {
+    const dir = temp()
+    writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
+    const id = () => sh(`. "${dir}/writer.sh"; printf %s "$AE_RUN"`, {}).stdout
+    const [a, b] = [id(), id()]
+    assert.match(a, /^\d{8}T\d{6}Z-[0-9a-f]{16}$/)
+    assert.notEqual(a, b)
   })
 })
 

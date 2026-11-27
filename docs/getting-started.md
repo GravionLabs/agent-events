@@ -10,9 +10,35 @@ Source this function, call it for each event. It counts `seq` from the lines alr
 
 ```sh
 # writer.sh
-AE_RUN="${AE_RUN:-$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+AE_RUN="${AE_RUN:-$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')}" # globally unique
+ae_events_dir() { # the shared directory of the binding
+  [ -z "$AGENT_EVENTS_DIR" ] || { printf '%s\n' "$AGENT_EVENTS_DIR"; return; }
+  case "$(uname -s)" in MINGW* | MSYS* | CYGWIN*) printf '%s\n' "$LOCALAPPDATA/agent-events"; return ;; esac
+  case "$XDG_STATE_HOME" in /*) ae_state=$XDG_STATE_HOME ;; *) ae_state=$HOME/.local/state ;; esac
+  printf '%s\n' "$ae_state/agent-events"
+}
+ae_member() { # ae_member <name> <value>: ,"name":"value", nothing for an empty value
+  [ -z "$2" ] || printf ',"%s":"%s"' "$1" "$(printf '%s' "$2" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+}
+ae_origin() { # the "origin" member of run.started
+  ae_repo=; ae_branch=; ae_tree=
+  if ae_common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then
+    ae_url=$(git remote get-url origin 2>/dev/null)
+    case "$ae_url" in
+      file:* | /* | .*) ;; # a local path names no host
+      *://*) ae_repo=${ae_url#*://}; ae_repo=${ae_repo#*/} ;;
+      *:*) ae_repo=${ae_url#*:}; ae_repo=${ae_repo#/} ;; # host:owner/repo
+    esac
+    ae_repo=${ae_repo%/}; ae_repo=${ae_repo%.git}
+    [ -n "$ae_repo" ] || ae_repo=${ae_common%/.git}
+    ae_branch=$(git symbolic-ref --quiet --short HEAD)
+    ae_tree=$(git rev-parse --show-toplevel 2>/dev/null)
+  fi
+  ae_json="$(ae_member repo "$ae_repo")$(ae_member branch "$ae_branch")$(ae_member worktree "$ae_tree")$(ae_member host "$(uname -n)")"
+  printf '"origin":{%s}' "${ae_json#,}"
+}
 ae_emit() { # ae_emit <type> <tone> [json members, e.g. '"done":1,"total":3']
-  ae_dir="${AGENT_EVENTS_DIR:-$(git rev-parse --path-format=absolute --git-common-dir)/.agents/events}"
+  ae_dir=$(ae_events_dir)
   mkdir -p "$ae_dir" || return
   ae_file="$ae_dir/$AE_RUN.jsonl"
   ae_seq=$(( $(cat "$ae_file" 2>/dev/null | wc -l) + 1 ))
@@ -24,13 +50,15 @@ ae_emit() { # ae_emit <type> <tone> [json members, e.g. '"done":1,"total":3']
 ```sh
 # use.sh
 . ./writer.sh
-ae_emit run.started neutral "\"profiles\":[],\"host\":{\"jsonl-file.pid\":\"$$\"}"
+ae_emit run.started neutral "\"profiles\":[],\"host\":{\"jsonl-file.pid\":\"$$\"},$(ae_origin)"
 ae_emit progress neutral '"done":1,"total":3,"label":"files"'
 ae_emit attention warning '"id":"a1","reason":"ci-red","needsYou":true'
 ae_emit run.finished success '"outcome":"succeeded"'
 ```
 
 Values you put into the members must already be valid JSON (escape quotes). Prefer reason codes (`ci-red`) over free text.
+
+`ae_events_dir` is the directory of the [binding](../bindings/jsonl-file.md#location): one per user, for the runs of all repositories. `ae_origin` says where a run comes from; it works outside a git repository too, and then leaves `repo`, `branch` and `worktree` out.
 
 ## Write from a Claude Code hook
 
@@ -41,7 +69,7 @@ Claude Code runs a command per hook event and passes a JSON object, with the `se
 . "$(dirname "$0")/writer.sh"
 SID=$(sed -n 's/.*"session_id" *: *"\([^"]*\)".*/\1/p' | head -n 1)
 [ -n "$SID" ] || exit 0
-ae_dir="${AGENT_EVENTS_DIR:-$(git rev-parse --path-format=absolute --git-common-dir)/.agents/events}"
+ae_dir=$(ae_events_dir)
 # The current run of the session is the latest of <session_id>, <session_id>-2, <session_id>-3 ...
 n=1; AE_RUN=$SID
 while [ -e "$ae_dir/$SID-$((n + 1)).jsonl" ]; do n=$((n + 1)); AE_RUN=$SID-$n; done
@@ -52,7 +80,7 @@ case "$1" in
       [ -n "$finished" ] || exit 0 # still running: compact, or resume of a run that never ended
       AE_RUN=$SID-$((n + 1)) # resume after SessionEnd: a new run
     fi
-    ae_emit run.started neutral '"profiles":[],"host":{},"agent":{"harness":"claude-code"}' ;;
+    ae_emit run.started neutral "\"profiles\":[],\"host\":{},\"agent\":{\"harness\":\"claude-code\"},$(ae_origin)" ;;
   attention) [ -n "$finished" ] || ae_emit attention warning "\"id\":\"n$(date +%s)\",\"reason\":\"notification\",\"needsYou\":true" ;;
   end) [ -n "$finished" ] || ae_emit run.finished neutral '"outcome":"succeeded"' ;;
 esac
@@ -101,7 +129,7 @@ A reader replays the file from the start, then follows it. Only lines ended by `
 Replay and fold with the CLI:
 
 ```sh
-E=$(git rev-parse --path-format=absolute --git-common-dir)/.agents/events  # not always .git/
+E=${AGENT_EVENTS_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/agent-events}  # Windows: %LOCALAPPDATA%\agent-events
 cat "$E/r1.jsonl"                     # replay: the events
 npx agent-events state "$E/r1.jsonl"  # the fold, as JSON
 ```
@@ -119,4 +147,4 @@ show()
 if (flag === '--follow') watchFile(file, { interval: 500 }, show)
 ```
 
-`fold` skips the incomplete last line, ignores lines that are not JSON, and deduplicates by `seq`. Resuming after `seq` N is, for this binding, skipping the first N events of the replay. Run files live in `<git-common-dir>/.agents/events/`, or in `AGENT_EVENTS_DIR` when it is set.
+`fold` skips the incomplete last line, ignores lines that are not JSON, and deduplicates by `seq`. Resuming after `seq` N is, for this binding, skipping the first N events of the replay. Run files live in one directory per user (`$XDG_STATE_HOME/agent-events/`, else `~/.local/state/agent-events/`; Windows `%LOCALAPPDATA%\agent-events\`), or in `AGENT_EVENTS_DIR` when it is set. Without the variable, a reader also reads the old `<git-common-dir>/.agents/events/` until 0.4 ([legacy directory](../bindings/jsonl-file.md#legacy-directory)).

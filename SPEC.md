@@ -34,7 +34,7 @@ Schema: [`schema/v0/core.schema.json`](schema/v0/core.schema.json). Every event 
 
 | `type` | Carries |
 | :-- | :-- |
-| `run.started` | `profiles` (`["<name>@<major>"]`), optional `profileSchemas` (`{"<name>@<major>": "https://…"}`), `host`, optional `agent` (`harness`, `model`), optional `subject` |
+| `run.started` | `profiles` (`["<name>@<major>"]`), optional `profileSchemas` (`{"<name>@<major>": "https://…"}`), `host`, optional `agent` (`harness`, `model`), optional `subject`, optional `origin` (`repo`, `branch`, `worktree`, `host`) |
 | `run.finished` | `outcome` (`succeeded`, `failed`, `cancelled`), optional `reason` (code), optional `text` |
 | `task.started` | `task` (id, unique in the run), optional `parent` (task id), `subject` |
 | `task.finished` | `task`, `outcome` (`succeeded`, `failed`, `cancelled`, `skipped`), optional `reason` (code), optional `text` |
@@ -96,6 +96,10 @@ Writers SHOULD finish every task (`task.finished`) before `run.finished`, so the
 ## Host
 
 `host` of `run.started` is an open map of namespaced keys to strings (`"herdr.pane": "w1:p2"`, `"poimen.terminal": "t3"`). A key is `<namespace>.<name>`. The core names no display; each display reads its own key.
+
+## Origin
+
+`origin` of `run.started` is optional and says where the run comes from: `repo` (`owner/repo`, or an absolute path), `branch`, `worktree` (absolute path) and `host`, all optional strings. `origin.host` is the host name of the machine; it differs from the `host` map of display keys above. A binding MAY require `origin`, as [jsonl-file](bindings/jsonl-file.md) does.
 
 ## Reason and text
 
