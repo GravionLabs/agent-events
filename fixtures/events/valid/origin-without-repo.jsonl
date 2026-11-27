@@ -1,0 +1,2 @@
+{"v":1,"seq":1,"ts":"2026-11-27T10:00:00.000Z","run":"01JDA0000000000000000000E1","type":"run.started","tone":"neutral","profiles":[],"host":{"herdr.pane":"w1:p2"},"origin":{"host":"devbox"}}
+{"v":1,"seq":2,"ts":"2026-11-27T10:00:01.000Z","run":"01JDA0000000000000000000E1","type":"run.finished","tone":"success","outcome":"succeeded"}

@@ -27,7 +27,8 @@
           },
           "host": { "$ref": "#/$defs/host" },
           "agent": { "type": "object", "properties": { "harness": { "type": "string" }, "model": { "type": "string" } } },
-          "subject": { "$ref": "#/$defs/subject" }
+          "subject": { "$ref": "#/$defs/subject" },
+          "origin": { "$ref": "#/$defs/origin" }
         } } },
     { "if": { "properties": { "type": { "const": "run.finished" } }, "required": ["type"] },
       "then": {
@@ -124,6 +125,16 @@
         "n": { "type": "integer", "minimum": 1 },
         "total": { "type": "integer", "minimum": 1 },
         "text": { "type": "string" }
+      }
+    },
+    "origin": {
+      "type": "object",
+      "description": "where the run comes from; host is the machine, not the host map of display keys",
+      "properties": {
+        "repo": { "type": "string" },
+        "branch": { "type": "string" },
+        "worktree": { "type": "string" },
+        "host": { "type": "string" }
       }
     },
     "host": {

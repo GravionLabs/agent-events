@@ -20,12 +20,12 @@ Each section below is a heading of the binding document. It answers the question
 | :-- | :-- | :-- | :-- |
 | Framing | How is one event delimited? What happens to a frame that is not a JSON object, or is incomplete? | one event per line ended by `\n`; incomplete last line is skipped until its newline arrives; lines that are not JSON are skipped | one event per tool call (write) or per element of `events` (read); an invalid event is a tool error and nothing is stored |
 | Writer | Where does the writer sit? Which envelope fields may a producer omit? How is one writer per run ensured? | the producing process itself, which sets the whole envelope; one writer process tree per file | the server; producer omits `v`, `seq`, `ts`; `run` is created on `run.started` and sent otherwise |
-| Discovery | How does a reader list runs and learn about new ones? | list `<dir>/*.jsonl`; the file name is the run id | resource `agent-events://runs`, with `list_changed` and `updated` notifications |
+| Discovery | How does a reader list runs and learn about new ones? | list `<dir>/*.jsonl` of the shared directory (and of the legacy directory, for one minor version); the file name is the run id | resource `agent-events://runs`, with `list_changed` and `updated` notifications |
 | Replay and resume | How does a reader get all events and continue after `seq` N? Is a snapshot offered? | read the file from the start; resume by remembering the last `seq`; no snapshot (fold it yourself) | `agent-events://runs/{run}/events{?after}`; a state snapshot at `…/state` |
 | Follow | How does a reader learn about new events? | read on past the end of the file (poll or file watch) | subscribe to the events resource, then read with `after`; poll without subscription support |
-| Delivery | Ordering, duplicates, loss. | append order is `seq` order | `seq` order within a run; duplicates possible, no loss of accepted events |
+| Delivery | Ordering, duplicates, loss. | append order is `seq` order; a run in the shared and the legacy directory is deduplicated by `(run, seq)` | `seq` order within a run; duplicates possible, no loss of accepted events |
 | Liveness | Stale time and extra signals for `abandoned`. | one hour of file age, or the writer pid is gone | one hour, or the session that started the run ended |
-| Retention | Who deletes what, when. | writers delete finished or abandoned runs after 7 days, keep at most 100 files | the server, server-defined |
+| Retention | Who deletes what, when. | a writer prunes the finished or abandoned runs of its own repository: 30 days, at most 100 per repository | the server, server-defined |
 | Limits | Maximum event size, rate limits. | 16384 bytes per line | 16384 bytes per event, server-defined rate limit |
 | Access | Authentication, who may read and write which runs. | file system permissions | the MCP transport, plus server policy |
 
@@ -36,7 +36,7 @@ The abstract reader operations behind the contract are **list runs**, **read a r
 These come from the core and ADR 0004; a binding states how it meets them, it does not choose whether to.
 
 - An event serializes to at most 16384 bytes of UTF-8. A binding MAY set a lower limit, never a higher one.
-- `run` is equal on every event of a run. Run ids SHOULD be unique across hosts and time (ULID or UUIDv7). A binding that carries runs of several hosts in one stream MUST require unique ids or qualify them.
+- `run` is equal on every event of a run. Run ids SHOULD be unique across hosts and time (ULID or UUIDv7). In a directory that several repositories or hosts share, such as that of `jsonl-file`, they MUST be unique. A binding that carries runs of several hosts in one stream MUST require unique ids or qualify them.
 - A writer MUST reject an event whose producer-supplied `seq` or `run` conflicts with its own. It MAY fill `ts` when the producer leaves it out.
 - Within a run events are ordered by `seq`, never by `ts`. Between runs there is no order. A binding MUST NOT reorder the events of a run, or it MUST let a reader restore the order by `seq`.
 - A binding MAY deliver an event more than once. Readers deduplicate by `(run, seq)`; the fold already ignores a `seq` that is not above the last folded one.
@@ -51,7 +51,7 @@ These come from the core and ADR 0004; a binding states how it meets them, it do
 - Writer: the process sets `v`, `seq`, `ts` and `run` itself. `seq` is the number of lines plus one. Because the file has one writer process tree, no lock is needed.
 - Discovery, replay, follow: a reader lists the directory, reads a file from the start and keeps reading from where it stopped. Resume after `seq` N means skipping the events up to N.
 - Liveness: the writer records `jsonl-file.pid` in `host`; a run is `abandoned` when that process is gone or the file did not change for an hour.
-- Retention and location: the writer prunes old runs; the directory is `<git-common-dir>/.agents/events/`, or `AGENT_EVENTS_DIR`.
+- Retention and location: one directory per user (on Linux `~/.local/state/agent-events/` unless `XDG_STATE_HOME` says otherwise), or `AGENT_EVENTS_DIR`; `run.started` names its `origin`, and the writer prunes old runs of its own repository only.
 
 [Getting started](getting-started.md) has runnable writers and a reader for this binding.
 

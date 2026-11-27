@@ -17,8 +17,17 @@ test('binding states file, lifecycle, retention and location rules', () => {
     '7 days',
     'at most 100',
     'Readers never delete',
+    '30 days',
+    'per repository',
+    'origin.repo',
+    '$XDG_STATE_HOME/agent-events/',
+    '~/.local/state/agent-events/',
+    '%LOCALAPPDATA%\\agent-events\\',
+    'globally unique',
     '<git-common-dir>/.agents/events/',
     'AGENT_EVENTS_DIR',
+    'whether or not `AGENT_EVENTS_DIR` is set',
+    'replaces only the shared directory',
     '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$',
   ]) {
     assert.ok(binding.toLowerCase().includes(needle.toLowerCase()), needle)

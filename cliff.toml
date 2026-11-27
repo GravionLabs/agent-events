@@ -27,6 +27,8 @@ body = """
 - {% if commit.breaking %}⚠️ **Breaking**: {% endif -%}
 {% if commit.scope %}**{{ commit.scope }}**: {% endif -%}
 {{ commit.message | upper_first }}
+{% if commit.breaking and commit.breaking_description != commit.message %}  {{ commit.breaking_description }}
+{% endif -%}
 {% endfor %}
 {% endfor %}\n
 """
