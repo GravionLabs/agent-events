@@ -8,13 +8,13 @@ const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'u
 
 describe('validate examples use the directory the binding writes to', () => {
   for (const f of ['README.md', 'action.yml']) {
-    it(`${f} has no bare .agents/events path`, () => {
-      assert.doesNotMatch(read(f), /(?<![\w./])\.agents\/events/)
-    })
-    it(`${f} points at .git/.agents/events`, () => {
-      assert.match(read(f), /\.git\/\.agents\/events\/(\*\.jsonl|r1\.jsonl)/)
+    it(`${f} does not name the legacy .agents/events directory`, () => {
+      assert.doesNotMatch(read(f), /\.agents\/events/)
     })
   }
+  it('README.md validates files of the per-user directory', () => {
+    assert.match(read('README.md'), /agent-events validate "\$E\/\*\.jsonl"/)
+  })
 })
 
 describe('profile guide shows the real validator call', () => {

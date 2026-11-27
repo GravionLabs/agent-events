@@ -99,7 +99,20 @@ Writers SHOULD finish every task (`task.finished`) before `run.finished`, so the
 
 ## Origin
 
-`origin` of `run.started` is optional and says where the run comes from: `repo` (`owner/repo`, or an absolute path), `branch`, `worktree` (absolute path) and `host`, all optional strings. `origin.host` is the host name of the machine; it differs from the `host` map of display keys above. A binding MAY require `origin`, as [jsonl-file](bindings/jsonl-file.md) does.
+`origin` of `run.started` is optional and says where the run comes from. All its fields are optional strings:
+
+| Field | Meaning |
+| :-- | :-- |
+| `origin.repo` | the repository: `owner/repo`, or an absolute path when no remote names one |
+| `origin.branch` | the branch |
+| `origin.worktree` | the absolute path of the worktree |
+| `origin.host` | the host name of the machine; it differs from the `host` map of display keys above |
+
+A binding MAY require `origin` and say how a writer derives each field, as [jsonl-file](bindings/jsonl-file.md#origin) does. A reader accepts runs without `origin` or with only some of its fields. It filters and groups runs by comparing the strings. The run state has no `origin`: a reader takes it from `run.started`.
+
+## Run ids
+
+`run` identifies a run. Run ids SHOULD be globally unique, across repositories, hosts and time: a writer SHOULD use a ULID or a UUIDv7. A binding that brings the runs of several repositories or hosts together in one place MUST require unique ids or qualify them; [jsonl-file](bindings/jsonl-file.md#file), with one directory per user, requires them. The characters of an id are limited (see Security).
 
 ## Reason and text
 
