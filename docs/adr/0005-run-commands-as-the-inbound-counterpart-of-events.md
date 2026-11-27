@@ -1,6 +1,6 @@
 # ADR 0005: Run commands as the inbound counterpart of events
 
-- Status: Proposed
+- Status: Accepted (2026-11-26)
 - Date: 2026-11-13
 - Supersedes: [ADR 0004](0004-binding-contract-and-envelope-stamping.md) in part (non-goal "No back channel", for runs only)
 - Builds on: [ADR 0001](0001-general-core-with-profiles-and-bindings.md), [ADR 0004](0004-binding-contract-and-envelope-stamping.md)
