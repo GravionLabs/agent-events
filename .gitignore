@@ -4,3 +4,10 @@ dist
 site/public/schema/
 site/.vitepress/dist/
 site/.vitepress/cache/
+
+# local agent state: only the installed skills and the project config are tracked
+/.agents/*
+!/.agents/skills/
+!/.agents/config.json
+!/.agents/lessons/
+/.claude/worktrees/
