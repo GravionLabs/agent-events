@@ -5,6 +5,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.1] — 2026-11-27
+
+### Documentation
+- Event directory, origin, CI events and the choice of binding (#91) (#98)
+- Deliver and CI event names follow the profile rule (#100) (#101)
+
+
 ## [0.3.0] — 2026-11-27
 
 ### Bug Fixes
@@ -14,6 +21,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Documentation
 - **adr**: Accept ADR 0005 (#85) (#87)
+- Update CHANGELOG.md for v0.3.0 [skip ci]
 
 
 ### Features
