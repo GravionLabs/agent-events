@@ -37,7 +37,7 @@ runs:
         else
           # default: the package is not on npm, so build the CLI from the Action's own checkout
           (cd "$ACTION_PATH" &&
-            npx --yes pnpm@11.11.0 install --frozen-lockfile --filter agent-events &&
-            npx --yes pnpm@11.11.0 run build)
+            npx --yes pnpm@12.22.0 install --frozen-lockfile --filter agent-events &&
+            npx --yes pnpm@12.22.0 run build)
           node "$ACTION_PATH/dist/cli.js" validate "$FILES" "${args[@]}"
         fi
