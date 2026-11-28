@@ -10,6 +10,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ### Documentation
 - Event directory, origin, CI events and the choice of binding (#91) (#98)
 - Deliver and CI event names follow the profile rule (#100) (#101)
+- Update CHANGELOG.md for v0.3.1 [skip ci]
 
 
 ## [0.3.0] — 2026-11-27
@@ -96,7 +97,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 - Schemas are served on GitHub Pages under `https://gravionlabs.github.io/agent-events/schema/v0/` (workflow `pages.yml`); a test checks that each `$id` equals its served path.
 - CI (`ci.yml`) runs typecheck, lint, format check, schema, fixture and validator tests on every push and pull request.
-- A push to `main` runs `release.yml`, which creates the tag `v<version>` and the GitHub release with `schema/v0/*.json` and the `npm pack` tarball as assets.
+- A push to `main` runs `release.yml`, which creates the tag `v<version>` and the GitHub release with `schema/v0/*.json` and the `pnpm pack` tarball as assets.
 - npm publish: decision to wait. Publishing needs an npm token that is not configured yet; `agent-events` 0.1.0 is not on npm, and the GitHub Action `version: latest` input needs it. Until then install with `npm install github:GravionLabs/agent-events#v0.1.0` (the `prepare` script builds `dist/` on a git install) or from the `agent-events-<version>.tgz` attached to the GitHub release.
 
 ### Bug Fixes

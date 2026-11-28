@@ -1,6 +1,6 @@
 {
   "name": "agent-events",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Validate agent-events run files (JSON Lines) against the core and profile schemas",
   "license": "MIT",
   "repository": {
