@@ -14,11 +14,12 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: GravionLabs/ci/node/setup@v1
         with:
           node-version: "26"
-      - run: npm ci
-      - run: npm test
+          package-manager: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
       - name: Determine the version from the conventional commits
         id: version
         uses: GravionLabs/ci/versioning/determine-version@v1
@@ -26,7 +27,7 @@ jobs:
           # below 1.0 the repository's own GitVersion.yml applies: breaking changes raise the minor version
           conventional-commits: 'false'
           gitversion-config-file: GitVersion.yml
-      # Writes the version into package.json and package-lock.json and regenerates CHANGELOG.md
+      # Writes the version into package.json and regenerates CHANGELOG.md
       # in one [skip ci] commit on main, tags that commit and creates the release (skipped when it
       # exists, so a re-run is safe). close-issues stays on: the job has issues: write and
       # pull-requests: read.
@@ -46,6 +47,6 @@ jobs:
           TAG="v$VERSION"
           git fetch --tags --force origin
           git checkout --detach "refs/tags/$TAG"
-          npm ci
-          npm pack --pack-destination "$RUNNER_TEMP"
+          pnpm install --frozen-lockfile
+          pnpm pack --pack-destination "$RUNNER_TEMP"
           gh release upload "$TAG" --clobber schema/v0/*.json "$RUNNER_TEMP/agent-events-$VERSION.tgz"

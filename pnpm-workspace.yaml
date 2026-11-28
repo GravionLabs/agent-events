@@ -1,0 +1,9 @@
+packages:
+  - '.'
+  - site
+
+allowBuilds:
+  esbuild: true
+
+# 7 days, in minutes: a younger release reaches neither the lockfile nor an install (GravionLabs/ci#239).
+minimumReleaseAge: 10080

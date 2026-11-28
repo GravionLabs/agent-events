@@ -91,24 +91,24 @@ npx agent-events validate runs/*.jsonl
 Pin a version tag. Read the schema from `https://raw.githubusercontent.com/GravionLabs/agent-events/<tag>/schema/v0/core.schema.json` or copy the fixtures into your tests, and check your writer against `fixtures/events`.
 
 ```sh
-npm install && npm test   # validates all fixtures against the core schema
+pnpm install && pnpm test   # validates all fixtures against the core schema
 ```
 
 ## Development
 
-The package runs on Node.js 22 or newer (compiled `dist/`). Toolchain: Node.js 26 or newer (runs TypeScript directly in tests), TypeScript (type check, and `npm run build` compiles `src/` to `dist/` for the npm package, because Node does not strip types under `node_modules`), Biome (lint and format) and `node:test` with `node:assert`.
+The package runs on Node.js 22 or newer (compiled `dist/`). Toolchain: Node.js 26 or newer (runs TypeScript directly in tests), TypeScript (type check, and `pnpm run build` compiles `src/` to `dist/` for the npm package, because Node does not strip types under `node_modules`), Biome (lint and format) and `node:test` with `node:assert`.
 
 ```sh
-npm run build       # tsc: src/ to dist/
-npm test            # builds, then node --test
-npm run typecheck   # tsc --noEmit
-npm run lint        # biome lint
-npm run format:check # biome format
+pnpm run build       # tsc: src/ to dist/
+pnpm test            # builds, then node --test
+pnpm run typecheck   # tsc --noEmit
+pnpm run lint        # biome lint
+pnpm run format:check # biome format
 ```
 
 ## Release
 
-The version is never bumped by hand. The `release.yml` workflow runs on every push to `main`: it runs `npm test`, determines the version from the Conventional Commits since the last tag (`GravionLabs/ci/versioning/determine-version`: `fix`/`perf`/`revert` = patch, `feat` = minor, `!` or `BREAKING CHANGE` = minor while below 1.0, configured in `GitVersion.yml`; remove that override at 1.0), then `GravionLabs/ci/versioning/gh-release` writes it into `package.json` and `package-lock.json`, regenerates `CHANGELOG.md` with git-cliff (`cliff.toml`), commits both in one `[skip ci]` commit, tags that commit `v<version>`, creates the GitHub release (body from git-cliff) and recreates `release/next`. The workflow then attaches `schema/v0/*.json` and the `npm pack` tarball, built from the tagged commit, to the release. A re-run is safe: an existing tag or release is not created twice and the assets are replaced. Merge the release PR with a merge commit. npm publish is not part of it.
+The version is never bumped by hand. The `release.yml` workflow runs on every push to `main`: it runs `pnpm test`, determines the version from the Conventional Commits since the last tag (`GravionLabs/ci/versioning/determine-version`: `fix`/`perf`/`revert` = patch, `feat` = minor, `!` or `BREAKING CHANGE` = minor while below 1.0, configured in `GitVersion.yml`; remove that override at 1.0), then `GravionLabs/ci/versioning/gh-release` writes it into `package.json`, regenerates `CHANGELOG.md` with git-cliff (`cliff.toml`), commits both in one `[skip ci]` commit, tags that commit `v<version>`, creates the GitHub release (body from git-cliff) and recreates `release/next`. The workflow then attaches `schema/v0/*.json` and the `pnpm pack` tarball, built from the tagged commit, to the release. A re-run is safe: an existing tag or release is not created twice and the assets are replaced. Merge the release PR with a merge commit. npm publish is not part of it.
 
 ## License
 
