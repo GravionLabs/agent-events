@@ -18,11 +18,9 @@ describe('supply chain: release age and pinned actions (#74)', () => {
       }
     })
   }
-  for (const f of ['.npmrc', 'site/.npmrc']) {
-    it(`${f} holds a release back for 7 days`, () => {
-      assert.match(read(f), /^min-release-age=7$/m)
-    })
-  }
+  it('pnpm holds a release back for 7 days', () => {
+    assert.match(read('pnpm-workspace.yaml'), /^minimumReleaseAge: 10080$/m)
+  })
   it('Renovate extends the shared preset and sets no minimum release age of its own', () => {
     const config = read('.github/renovate.json5')
     assert.match(config, /"github>GravionLabs\/ci"/)

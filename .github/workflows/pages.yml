@@ -13,6 +13,9 @@ on:
       - "docs/**"
       - "bindings/**"
       - ".github/workflows/pages.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
 
 permissions: {}
@@ -26,5 +29,5 @@ jobs:
     uses: GravionLabs/ci/.github/workflows/vitepress-pages.yml@v1
     with:
       site-path: site
-      package-manager: npm
+      package-manager: pnpm
       deploy: ${{ github.event_name != 'pull_request' }}
