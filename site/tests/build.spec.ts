@@ -17,7 +17,7 @@ function listFiles(dir: string, prefix = ''): string[] {
 }
 
 beforeAll(() => {
-  execFileSync('npm', ['run', 'build'], { cwd: site, stdio: 'pipe' })
+  execFileSync('pnpm', ['run', 'build'], { cwd: site, stdio: 'pipe' })
 }, 180_000)
 
 describe('the built site', () => {

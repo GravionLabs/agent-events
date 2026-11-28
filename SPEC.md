@@ -145,7 +145,7 @@ A display MUST be able to show a run from the core alone; a profile is never req
 - Fields and types are only added within a major. Readers ignore unknown fields, types and profiles (they stay valid); prefixed profile fields too.
 - A change in meaning bumps `v`.
 - Every new type or rule comes with a fixture in `fixtures/events/`, every fold rule with one in `fixtures/state/`.
-- Fixtures: `valid/*.jsonl` MUST be accepted, `invalid/*.jsonl` MUST be rejected, one case per rule. `npm test` checks both.
+- Fixtures: `valid/*.jsonl` MUST be accepted, `invalid/*.jsonl` MUST be rejected, one case per rule. `pnpm test` checks both.
 
 ## Security
 

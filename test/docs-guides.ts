@@ -1,17 +1,11 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import {
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync,
-} from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { hostname, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { tempDir } from './temp.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const read = (p: string) => readFileSync(join(root, p), 'utf8')
@@ -45,7 +39,7 @@ const guide = read('docs/getting-started.md')
 
 describe('getting-started writers produce valid runs', () => {
   it('the shell function writes a run the validator accepts', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ae-sh-'))
+    const dir = tempDir('ae-sh-')
     writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
     const r = sh(`cd "${dir}" && ${block(guide, 'use.sh')}`, {
       AGENT_EVENTS_DIR: dir,
@@ -63,7 +57,7 @@ describe('getting-started writers produce valid runs', () => {
   })
 
   it('the Claude Code hook script writes start, attention and end for the session id', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
+    const dir = tempDir('ae-hook-')
     writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
     writeFileSync(join(dir, 'ae-hook.sh'), block(guide, 'ae-hook.sh'))
     const stdin = '{"session_id":"7f3c-sess","hook_event_name":"x"}'
@@ -82,7 +76,7 @@ describe('getting-started writers produce valid runs', () => {
   })
 
   it('a second SessionStart (resume, compact) for the same session adds no run.started', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
+    const dir = tempDir('ae-hook-')
     writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
     writeFileSync(join(dir, 'ae-hook.sh'), block(guide, 'ae-hook.sh'))
     const stdin = '{"session_id":"7f3c-sess","hook_event_name":"SessionStart"}'
@@ -101,7 +95,7 @@ describe('getting-started writers produce valid runs', () => {
   })
 
   it('a session resumed after SessionEnd starts a new run that folds and validates', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
+    const dir = tempDir('ae-hook-')
     writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
     writeFileSync(join(dir, 'ae-hook.sh'), block(guide, 'ae-hook.sh'))
     const stdin = '{"session_id":"7f3c-sess","hook_event_name":"x"}'
@@ -130,7 +124,7 @@ describe('getting-started writers produce valid runs', () => {
   })
 
   it('the hook does nothing without a session id', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ae-hook-'))
+    const dir = tempDir('ae-hook-')
     writeFileSync(join(dir, 'writer.sh'), block(guide, 'writer.sh'))
     writeFileSync(join(dir, 'ae-hook.sh'), block(guide, 'ae-hook.sh'))
     const r = sh(`sh "${dir}/ae-hook.sh" start`, { AGENT_EVENTS_DIR: dir }, '{}')
@@ -165,7 +159,7 @@ describe('getting-started writers produce valid runs', () => {
         ...body,
       }
     })
-    const dir = mkdtempSync(join(tmpdir(), 'ae-mcp-'))
+    const dir = tempDir('ae-mcp-')
     const file = join(dir, `${run}.jsonl`)
     writeFileSync(file, `${events.map((e) => JSON.stringify(e)).join('\n')}\n`)
     const v = validate(file)
@@ -180,7 +174,7 @@ describe('getting-started location and origin', () => {
   }
   /** Runs use.sh in cwd and returns the origin of the run.started found in eventsDir. */
   const originOf = (cwd: string, env: Record<string, string>, eventsDir: string) => {
-    const scripts = mkdtempSync(join(tmpdir(), 'ae-loc-'))
+    const scripts = tempDir('ae-loc-')
     writeFileSync(join(scripts, 'writer.sh'), block(guide, 'writer.sh'))
     const use = block(guide, 'use.sh').replace('./writer.sh', `"${scripts}/writer.sh"`)
     const r = sh(`cd "${cwd}" && ${use}`, { AE_RUN: 'loc1', ...env })
@@ -190,7 +184,7 @@ describe('getting-started location and origin', () => {
     assert.equal(v.status, 0, v.stdout + v.stderr)
     return JSON.parse(readFileSync(file, 'utf8').split('\n')[0] as string).origin
   }
-  const temp = () => realpathSync(mkdtempSync(join(tmpdir(), 'ae-repo-')))
+  const temp = () => realpathSync(tempDir('ae-repo-'))
   const repo = () => {
     const dir = temp()
     git(dir, 'init', '--quiet', '--initial-branch=topic')
@@ -259,7 +253,7 @@ describe('getting-started location and origin', () => {
 })
 
 describe('getting-started reader', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'ae-read-'))
+  const dir = tempDir('ae-read-')
   const file = join(dir, 'r1.jsonl')
   const events = `${read('fixtures/events/valid/run-level-steps.jsonl').trim()}\n{"v":1,"seq":4`
   writeFileSync(file, events)
@@ -290,7 +284,7 @@ describe('getting-started reader', () => {
 
 /** Writes every jsonl block of a doc as <run>.jsonl into a new directory. */
 function exampleRuns(doc: string) {
-  const dir = mkdtempSync(join(tmpdir(), 'ae-example-'))
+  const dir = tempDir('ae-example-')
   const runs = [...doc.matchAll(/```jsonl\n([\s\S]*?)```/g)].map((m) => {
     const text = m[1] as string
     const events = text
@@ -307,7 +301,7 @@ function exampleRuns(doc: string) {
 describe('worked example: two repositories and a CI run', () => {
   const { dir, runs } = exampleRuns(guide)
   writeFileSync(join(dir, 'older-writer.txt'), 'not a run file')
-  const scripts = mkdtempSync(join(tmpdir(), 'ae-runs-'))
+  const scripts = tempDir('ae-runs-')
   const script = join(scripts, 'runs.mjs')
   writeFileSync(
     script,
@@ -516,7 +510,7 @@ describe('docs structure', () => {
       .trim()
       .split('\n')
       .map((l) => JSON.parse(l))
-    const dir = mkdtempSync(join(tmpdir(), 'ae-subj-'))
+    const dir = tempDir('ae-subj-')
     const file = join(dir, 's1.jsonl')
     writeFileSync(
       file,
