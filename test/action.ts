@@ -14,8 +14,9 @@ describe('action default version (#36)', () => {
   })
   it('without version builds the CLI from the checkout of the action itself', () => {
     assert.match(action, /github\.action_path/)
-    assert.match(action, /npm ci/)
-    assert.match(action, /npm run build/)
+    const { packageManager } = JSON.parse(read('package.json'))
+    assert.ok(action.includes(`npx --yes ${packageManager} install --frozen-lockfile`))
+    assert.ok(action.includes(`npx --yes ${packageManager} run build`))
   })
   it('with version still installs that npm version', () => {
     assert.match(action, /agent-events@\$\{VERSION\}/)

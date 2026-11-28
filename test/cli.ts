@@ -1,19 +1,11 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import {
-  existsSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { afterEach, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { checkRun, hasErrors } from '../src/check.ts'
 import { isEntry, main } from '../src/cli.ts'
+import { tempDir } from './temp.ts'
 
 const path = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url))
 const read = (p: string) => readFileSync(path(p), 'utf8')
@@ -112,7 +104,7 @@ describe('example profile', () => {
 
 describe('profile that cannot be compiled', () => {
   const core = path('schema/v0/core.schema.json')
-  const dir = mkdtempSync(`${tmpdir()}/ae-profile-`)
+  const dir = tempDir('ae-profile-')
   const write = (name: string, schema: object) => {
     const file = `${dir}/${name}`
     writeFileSync(file, JSON.stringify(schema))
@@ -263,7 +255,7 @@ describe('cli', () => {
     assert.match(execFileSync('node', [bin, '--help']).toString(), /Usage: agent-events validate/)
   })
   it('runs when invoked through a symlink like the npm bin shim (#63)', () => {
-    const dir = mkdtempSync(`${tmpdir()}/ae-bin-`)
+    const dir = tempDir('ae-bin-')
     try {
       const link = `${dir}/agent-events`
       symlinkSync(path('dist/cli.js'), link)

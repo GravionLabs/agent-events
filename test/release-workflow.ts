@@ -42,7 +42,7 @@ describe('release workflow takes the version from the commits (#72)', () => {
     assert.equal(rule('patch-version-bump-message').test('fix(x): y'), true)
   })
   it('runs the tests before the version is determined', () => {
-    assert.ok(y.indexOf('run: npm test') < y.indexOf('determine-version@v1'))
+    assert.ok(y.indexOf('run: pnpm test') < y.indexOf('determine-version@v1'))
   })
   it('determines the version and releases with GravionLabs/ci at @v1', () => {
     assert.match(y, /GravionLabs\/ci\/versioning\/determine-version@v1/)
@@ -61,7 +61,7 @@ describe('release workflow takes the version from the commits (#72)', () => {
   it('uploads the schemas and the tarball idempotently from the tagged commit', () => {
     assert.match(y, /git checkout --detach "refs\/tags\/\$TAG"/)
     assert.match(y, /gh release upload "\$TAG" --clobber schema\/v0\/\*\.json/)
-    assert.match(y, /npm pack/)
+    assert.match(y, /pnpm pack/)
   })
   it('does not use the removed manual version check or hand-made release', () => {
     assert.doesNotMatch(y, /release-notes/)

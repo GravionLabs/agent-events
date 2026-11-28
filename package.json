@@ -1,6 +1,6 @@
 {
   "name": "agent-events",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Validate agent-events run files (JSON Lines) against the core and profile schemas",
   "license": "MIT",
   "repository": {
@@ -8,6 +8,7 @@
     "url": "git+https://github.com/GravionLabs/agent-events.git"
   },
   "type": "module",
+  "packageManager": "pnpm@11.11.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -29,8 +30,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "npm run build",
-    "test": "npm run build && node --test test/validate.ts test/state.ts test/binding.ts test/directory.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/docs-guides.ts test/node-version.ts test/install.ts test/release-workflow.ts test/action.ts test/supply-chain.ts",
+    "prepare": "tsc -p tsconfig.build.json",
+    "test": "pnpm run build && node --test test/validate.ts test/state.ts test/binding.ts test/directory.ts test/profile.ts test/cli.ts test/pages.ts test/docs-paths.ts test/docs-guides.ts test/node-version.ts test/install.ts test/release-workflow.ts test/action.ts test/supply-chain.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint .",
     "format:check": "biome format .",
